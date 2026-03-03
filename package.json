@@ -1,0 +1,33 @@
+{
+  "name": "project-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "dev:api": "pnpm --filter @app/api run dev",
+    "dev:web": "pnpm --filter @app/web run dev",
+    "build": "pnpm -r run build",
+    "build:api": "pnpm --filter @app/api run build",
+    "build:web": "pnpm --filter @app/web run build",
+    "test": "pnpm -r run test",
+    "test:api": "pnpm --filter @app/api run test",
+    "test:web": "pnpm --filter @app/web run test",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "db:generate": "pnpm --filter @app/api run db:generate",
+    "db:migrate": "pnpm --filter @app/api run db:migrate",
+    "db:push": "pnpm --filter @app/api run db:push",
+    "db:seed": "pnpm --filter @app/api run db:seed",
+    "db:studio": "pnpm --filter @app/api run db:studio",
+    "db:reset": "pnpm --filter @app/api run db:reset",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "clean": "pnpm -r exec rm -rf node_modules dist .turbo && rm -rf node_modules"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
+}
