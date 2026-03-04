@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pure Clarity - Hotel Search</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#11d4d4",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#102222",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Header / Navigation Bar -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark px-4 md:px-10 py-3">
+<div class="mx-auto flex max-w-7xl items-center justify-between gap-8">
+<!-- Logo & Brand -->
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary">
+<div class="size-6">
+<svg fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 42.4379C4 42.4379 14.0962 36.0744 24 41.1692C35.0664 46.8624 44 42.2078 44 42.2078L44 7.01134C44 7.01134 35.068 11.6577 24.0031 5.96913C14.0971 0.876274 4 7.27094 4 7.27094L4 42.4379Z"></path>
+</svg>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight">Pure Clarity</h2>
+</div>
+<!-- Search Input -->
+<div class="hidden md:flex flex-col min-w-64">
+<div class="flex w-full items-stretch rounded-xl h-10 bg-slate-100 dark:bg-slate-800">
+<div class="text-slate-500 flex items-center justify-center pl-4">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="w-full border-none bg-transparent focus:ring-0 text-sm placeholder:text-slate-500 px-3" placeholder="Search destinations..." value="Kyoto, Japan"/>
+</div>
+</div>
+</div>
+<!-- Nav Links & Profile -->
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#">Hotels</a>
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#">Flights</a>
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#">Trips</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center rounded-full size-10 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="size-10 rounded-full border-2 border-primary bg-slate-200 bg-cover bg-center" data-alt="User profile avatar close-up portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDuaX8f0XH5SxQcYJOPomFGSVo8G64HQcyaPCr4uxYeld1PMKkbzssuiQDBN7Qj0f7FiWHirRV3o4FrtfWDVC6ChXHWDA_q49w6WQ5HxZW5pWKo9w6YaC_D8ZA8J2naSHQR8TC7_zLd9AECRys-XcYvPFXGKDUUj1u5mLlQYnyMbSYBTTGZmn_glj1ewkiYTmRuNpItq4KO095S4IS8VKkCp67MEXeFQDp3tIaOLJK0kRS_UgvvNgCSD0DWQOQs7D5JX4G4GF7od2E')"></div>
+</div>
+</div>
+</div>
+</header>
+<!-- Filter Bar -->
+<div class="w-full bg-white dark:bg-background-dark border-b border-slate-200 dark:border-slate-800">
+<div class="mx-auto max-w-7xl px-4 md:px-10 py-4 flex flex-wrap gap-3">
+<button class="flex h-10 items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 border border-transparent hover:border-primary/50 transition-all">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+                    Kyoto, Japan
+                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<button class="flex h-10 items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 border border-transparent hover:border-primary/50 transition-all">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+                    Price Range
+                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<button class="flex h-10 items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 border border-transparent hover:border-primary/50 transition-all">
+<span class="material-symbols-outlined text-[18px]">star</span>
+                    Star Rating
+                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<button class="flex h-10 items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 border border-transparent hover:border-primary/50 transition-all">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+                    More Filters
+                </button>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="mx-auto w-full max-w-7xl px-4 md:px-10 py-8">
+<!-- Search Summary -->
+<div class="mb-8">
+<h1 class="text-3xl font-bold text-slate-900 dark:text-white">124 hotels found in Kyoto</h1>
+<p class="text-slate-500 dark:text-slate-400 mt-1">Sorted by relevance and price for your dates</p>
+</div>
+<!-- Hotel Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<!-- Hotel Card 1 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Traditional Japanese luxury hotel exterior with gardens" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDI9KDimzd3GJFiEdFHKETtzwMBY7Q2Ck3hdw_4Msy8xHm5nUUx325dTnsLEbjKNJGGl-hlnrBTdUw17d_DstbWIThEVVBHGGXR-6X6QLMI-V1KiBoByPlFrGBKl5B0QAJkqRMqDJpeh7UjH2JT3mY8W52vLvd-F9svkVHYIgxkwSzj-9Y7_H-7huK6VCwyVAkhsG1d27QMlppHhdmYcJiCvYTOE3rqIZrnXr83AXkWOV279iORwqmMvol7e7fTGf5ZltA-L3JJ2fs')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">The Ritz-Carlton, Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">4.9</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$450 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<!-- Tags -->
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Pool</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Free Wi-Fi</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Breakfast</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Hotel Card 2 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Modern luxury hotel lobby with minimalist design" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDlqarpShCkCSxkKwPsS13YaVlPJGC2BcHMyWAOxathdYwRq1SPtvpkbTqZDQVIrWqaCusOhCbdqn2lWmlaEu33yZgimSUt6xDgCnn-AHomP5aTH_pcIkMTA5c4b4C9N5-nQrAJLJRDqK6bWKxj-Q6xPO8YRr4PagG1Qr72TOMcP_lPqvzf8dhkxFoUvWHy52OeS-pABXhNj0JH1D28-PgVPx7OT7xTX4OAFoFMj6hM6Un0UjV8YMxITzueNgS3zTF4W2E9yvPQwm0')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">Hotel Granvia Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">4.7</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$280 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Gym</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Free Wi-Fi</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Hotel Card 3 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Boutique hotel room with artistic interior" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCry1-ZxGo5Gv9eJqH5Ilq0KmvMoHa9svESyTsnDODf3jGqD54fsMIfjyo3bSWhSgqa6Wooc37uAvnD_D0SOwfjet0Og-LmZpdue3FtmbqKFEgSdiVerwzzrp7sSqY2kR-FeNPVHZ3bckadTFpYCpPEfu9RUNUcDroOCsdYWJEqAO0bGp5hXf381Ms5Bd8gc_pOb_HouThgk-MGM1ImQeASmgYLGn8XyIMX3KAEC2ihfm8ESTst_iyHw8h8lcJLS9Xb_e11PJWhkac')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">Ace Hotel Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">4.8</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$320 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Pets Allowed</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Bar</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Hotel Card 4 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Grand resort exterior with palm trees" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDG6HUuGNv4uw3p_6vDZbmfGtz1WdMVuuVDe4FJwWPxAQHlDvETrgWEGPyQ7WCqkRHV-G7-fooILkpl5HS91N206p9vt2dYgCbYo_ll6M6UWRyfRh0Zmq4cSMkZ4VR6wHL1YvS39i8PMR9lHc5r4HpdVDM3cGmolbS0CLsc_TQnGpJcG2Q6oEYaRoVrC4VOheA92n6yl7qqNrsq_cXbJ4ljAlcV33Yr4It_6Ys6iwztg-U9VBNz-ZISFMqqDRANYFMclF2UnX3TkQQ')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">Park Hyatt Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">4.9</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$600 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Spa</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Breakfast</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Hotel Card 5 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Infinity pool overlooking the ocean at sunset" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB62VIdltESoZaWlb8UfE8O9fyr8bGZwHokwVX9exsk8Q20m_PyskHoljCsscPZQMtPb_3hKI3K4dC05lRd4Di1gYPk0O2HE8Wr4KSgUxt8jpSUqtXtnqjYn7C9dOsKz4mINK6EMSNBl71KzBIVJfmcax3KJnhnUPEdGnyFdutJqzTpBTkMJ_drToDhrUU57bJ7KTJUAe2QXc5b_QFX1MVQH61VJcX6pO6oz0t4XzkT4t2fBqV4CvMdE6p7uEupwdxTmxrzUtOINwo')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">Aman Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">5.0</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$1,200 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Private Onsen</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Forest View</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Hotel Card 6 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Modern hotel room with high-tech amenities" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDnEQ6QpQ9sY4VVO2jqAI9iSvIP7DfMHjeiBs6cZM_EpHiC9mmIme_5K12eHu8hCO0zhfYQHl3ZoU7svWcFUkVDs7zwdNGOY7Le8VZCh68InaVK7r7Hjda-8BwfKVoUcL6yOsAYa61kbQrw-CpyfSlTyEgyAskyW3OIPcsOASunDdd8HueIDI7rtjWvIYaJvQ1QVvTjAJcOPk82c6HsQatxLbPzR7orajLObEdZuUaibTjoiVB9iwHjANb1dLflkRF8MdtAsesiIeM')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">Cross Hotel Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">4.6</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$190 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Eco-Friendly</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Wi-Fi</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Hotel Card 7 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Contemporary architecture hotel building at night" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB9KSCy6JneNsG_QH0O2SjIS8t9yrqhwqgA88-wshA2sAVusirgLeIlKCAwT-cjAIKFJ1Z6uxdOYqJEsymqkLqTHuN2-iIdvbJOuwKv-W4G5Iv170BgpkVcy9zZatVJD_AfvNlMIPujivAAv7Mps66Z6iGicEvWjcSGpjHiwZRCN59cNXDq9X4n496fJrPnHRZKHRs9mTqIbsRiXEhHlFgbcsMbyfN_dUFPwE-Dtn0QX_lbc0yUFMo-nl3psZgkqtnxvsEPHFSN7eY')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">Noku Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">4.5</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$210 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Concierge</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Cafe</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+<!-- Hotel Card 8 -->
+<div class="group flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800">
+<div class="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Minimalist zen style hotel bedroom" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAzxJAaQq9s3YCY8djULq-kXL7ae9RENQltk5HQ_Bs9-hvzEa7uvyPMI_47u0XvxmU5ReRLSCgtbENBvmHaxH3ww0hdffyMHUeNpp9tquKHMIrw_8p-rpSDwyeOZrB9otoilcEg61jvz4-3VAacvXPjc31nfmIgPSCW7d4Wmnvf5Zwc-2azvGa_8iizAYIbRgP0SWPn4eE-UhyTC1rwGiBZ2B4TM5bIDHKiRITnhdwVVMzfE3CE57h4xoDVem74K6lBtHxa9mRzGH0')"></div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4 gap-3 flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-snug">The Thousand Kyoto</h3>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px] fill-1">star</span>
+<span class="text-sm font-bold">4.8</span>
+</div>
+</div>
+<p class="text-xl font-bold text-primary">$350 <span class="text-sm font-normal text-slate-500">/ night</span></p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Luxury Spa</span>
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Fine Dining</span>
+</div>
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-slate-900 font-bold py-3 rounded-xl transition-colors">
+                                View Details
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Map View Toggle Floating Button (Optional UI addition for modern feel) -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
+<button class="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-6 py-3 rounded-full shadow-lg font-bold hover:scale-105 transition-transform">
+<span class="material-symbols-outlined">map</span>
+                    Show Map
+                </button>
+</div>
+</main>
+</div>
+</body></html>

@@ -3,3 +3,8 @@ export * from "./user-schemas";
 export * from "./resource-schemas";
 export * from "./pagination-schema";
 export * from "./resource-query-schema";
+export * from "./hotel-schemas";
+export * from "./booking-schemas";
+export * from "./chat-schemas";
+export * from "./kb-schemas";
+export * from "./pricing-schemas";

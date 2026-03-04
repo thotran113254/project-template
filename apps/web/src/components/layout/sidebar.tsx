@@ -1,5 +1,15 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Package, Users, UserCircle } from "lucide-react";
+import {
+  MessageSquare,
+  Hotel,
+  Calculator,
+  BookOpen,
+  Package,
+  Users,
+  UserCircle,
+  LayoutDashboard,
+  Compass,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -8,13 +18,20 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
+  section?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/resources", label: "Resources", icon: Package },
-  { to: "/users", label: "Users", icon: Users, adminOnly: true },
+  { to: "/chat", label: "Chat AI", icon: MessageSquare },
+  { to: "/hotels", label: "Hotels", icon: Hotel },
+  { to: "/pricing", label: "Pricing Tool", icon: Calculator },
   { to: "/profile", label: "Profile", icon: UserCircle },
+  // Admin section
+  { to: "/pricing/admin", label: "Pricing (Admin)", icon: Calculator, adminOnly: true, section: "Admin" },
+  { to: "/knowledge-base", label: "Knowledge Base", icon: BookOpen, adminOnly: true },
+  { to: "/products", label: "Products & Prices", icon: Package, adminOnly: true },
+  { to: "/users", label: "Users", icon: Users, adminOnly: true },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, adminOnly: true },
 ];
 
 /** Sidebar navigation with role-based link visibility. */
@@ -26,35 +43,49 @@ export function Sidebar() {
     (item) => !item.adminOnly || isAdmin,
   );
 
+  let lastSection: string | undefined;
+
   return (
     <aside className="flex h-full w-64 flex-col border-r border-[var(--border)] bg-[var(--card)]">
       {/* Logo / Brand */}
       <div className="flex h-16 items-center border-b border-[var(--border)] px-6">
-        <Package className="mr-2 h-5 w-5 text-[var(--primary)]" />
-        <span className="text-lg font-semibold text-[var(--foreground)]">
-          App Manager
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600">
+          <Compass className="h-4 w-4 text-white" />
+        </div>
+        <span className="ml-2 text-lg font-semibold text-[var(--foreground)]">
+          AI Travel
         </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {visibleItems.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                  : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]",
-              )
-            }
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </NavLink>
-        ))}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        {visibleItems.map(({ to, label, icon: Icon, section }) => {
+          const showSection = section && section !== lastSection;
+          if (section) lastSection = section;
+          return (
+            <div key={to}>
+              {showSection && (
+                <p className="mb-1 mt-4 px-3 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+                  {section}
+                </p>
+              )}
+              <NavLink
+                to={to}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-teal-50 text-teal-700"
+                      : "text-[var(--muted-foreground)] hover:bg-teal-50/50 hover:text-teal-700",
+                  )
+                }
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </NavLink>
+            </div>
+          );
+        })}
       </nav>
 
       {/* User info footer */}

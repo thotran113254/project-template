@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "stitch": {
+      "type": "http",
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "AQ.Ab8RN6I-B4kiWxiwwrA6cFXe2LLr_4xi-qCJx6GSCRDw7nZM4Q"
+      }
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5433/app_db"
+      ],
+      "env": {}
+    }
+  }
+}

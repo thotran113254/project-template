@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#008080",
+                        "background-light": "#F4F4F4",
+                        "background-dark": "#102222",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "12px",
+                        "lg": "12px",
+                        "xl": "12px",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #00808033;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="max-w-lg mx-auto bg-white dark:bg-slate-900 min-h-screen shadow-xl flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-2xl">calculate</span>
+</div>
+<div>
+<h1 class="text-lg font-bold leading-tight">Công cụ tính giá (Sale)</h1>
+<p class="text-xs text-slate-500 font-medium uppercase tracking-wider">AI Travel Assistant</p>
+</div>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<main class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar">
+<!-- Form Section -->
+<div class="space-y-4">
+<!-- Room Type -->
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Loại phòng</label>
+<div class="relative">
+<select class="w-full h-14 pl-4 pr-10 rounded-lg border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary appearance-none transition-all">
+<option value="">Chọn loại phòng</option>
+<option value="deluxe">Deluxe Ocean View</option>
+<option value="suite">Premium Suite</option>
+<option value="villa">Presidential Villa</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-4 text-slate-400 pointer-events-none">unfold_more</span>
+</div>
+</div>
+<!-- Date Picker Section -->
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Ngày nhận &amp; trả phòng</label>
+<div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+<div class="flex items-center justify-between mb-4">
+<button class="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-colors">
+<span class="material-symbols-outlined text-primary">chevron_left</span>
+</button>
+<span class="font-bold text-sm">Tháng 10 2023</span>
+<button class="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-colors">
+<span class="material-symbols-outlined text-primary">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-7 gap-1 text-center">
+<div class="text-[10px] font-bold text-slate-400 pb-2">CN</div>
+<div class="text-[10px] font-bold text-slate-400 pb-2">T2</div>
+<div class="text-[10px] font-bold text-slate-400 pb-2">T3</div>
+<div class="text-[10px] font-bold text-slate-400 pb-2">T4</div>
+<div class="text-[10px] font-bold text-slate-400 pb-2">T5</div>
+<div class="text-[10px] font-bold text-slate-400 pb-2">T6</div>
+<div class="text-[10px] font-bold text-slate-400 pb-2">T7</div>
+<!-- Placeholder dates -->
+<div class="py-2 text-sm text-slate-300">28</div>
+<div class="py-2 text-sm text-slate-300">29</div>
+<div class="py-2 text-sm text-slate-300">30</div>
+<button class="py-2 text-sm font-medium hover:bg-white dark:hover:bg-slate-700 rounded-lg">1</button>
+<button class="py-2 text-sm font-medium hover:bg-white dark:hover:bg-slate-700 rounded-lg">2</button>
+<button class="py-2 text-sm font-medium hover:bg-white dark:hover:bg-slate-700 rounded-lg">3</button>
+<button class="py-2 text-sm font-medium hover:bg-white dark:hover:bg-slate-700 rounded-lg">4</button>
+<button class="py-2 text-sm font-medium bg-primary text-white rounded-l-lg">5</button>
+<button class="py-2 text-sm font-medium bg-primary/20">6</button>
+<button class="py-2 text-sm font-medium bg-primary/20">7</button>
+<button class="py-2 text-sm font-medium bg-primary/20 rounded-r-lg text-primary font-bold">8</button>
+<button class="py-2 text-sm font-medium hover:bg-white dark:hover:bg-slate-700 rounded-lg">9</button>
+<button class="py-2 text-sm font-medium hover:bg-white dark:hover:bg-slate-700 rounded-lg">10</button>
+<button class="py-2 text-sm font-medium hover:bg-white dark:hover:bg-slate-700 rounded-lg">11</button>
+</div>
+</div>
+</div>
+<!-- Number of Guests -->
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Số lượng khách</label>
+<div class="flex items-center bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-1">
+<button class="w-12 h-12 flex items-center justify-center text-primary hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<input class="flex-1 bg-transparent border-none text-center font-bold text-lg focus:ring-0" type="number" value="2"/>
+<button class="w-12 h-12 flex items-center justify-center text-primary hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Price Highlight Section -->
+<div class="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-xl p-6 text-center space-y-2">
+<p class="text-primary font-bold text-sm uppercase tracking-widest">Giá báo khách</p>
+<div class="flex items-center justify-center gap-1">
+<span class="text-4xl font-black text-slate-900 dark:text-white">4.500.000</span>
+<span class="text-lg font-bold text-slate-500">VNĐ</span>
+</div>
+<div class="flex justify-center gap-4 mt-2">
+<div class="flex items-center gap-1 text-xs text-slate-500">
+<span class="material-symbols-outlined text-sm">night_shelter</span>
+                        3 đêm
+                    </div>
+<div class="flex items-center gap-1 text-xs text-slate-500">
+<span class="material-symbols-outlined text-sm">person</span>
+                        2 người lớn
+                    </div>
+</div>
+</div>
+<!-- Quote Breakdown Preview -->
+<div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-dashed border-slate-300 dark:border-slate-700">
+<p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Nội dung báo giá</p>
+<div class="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+<p>🏨 <strong>Phòng:</strong> Deluxe Ocean View</p>
+<p>📅 <strong>Lịch:</strong> 05/10 - 08/10 (3 đêm)</p>
+<p>👤 <strong>Khách:</strong> 2 người lớn</p>
+<p>💰 <strong>Tổng cộng:</strong> 4.500.000 VNĐ (Đã gồm phí phục vụ)</p>
+</div>
+</div>
+</main>
+<!-- Fixed Action Button -->
+<footer class="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+<button class="w-full bg-primary hover:brightness-110 text-white h-14 rounded-lg font-bold flex items-center justify-center gap-3 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined">content_copy</span>
+                Sao chép báo giá cho Zalo
+            </button>
+<p class="text-center text-[11px] text-slate-400 mt-4">
+                Tự động định dạng tin nhắn cho ứng dụng chat
+            </p>
+</footer>
+</div>
+</body></html>

@@ -21,7 +21,25 @@
       "Write",
       "Edit",
       "Glob",
-      "Grep"
+      "Grep",
+      "mcp__stitch__*",
+      "mcp__postgres__*",
+      "Bash(wget *)",
+      "Bash(chmod *)",
+      "Bash(echo *)",
+      "Bash(sed *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(tmux *)",
+      "Bash(psql *)",
+      "Bash(timeout *)",
+      "Bash(kill *)",
+      "Bash(pkill *)",
+      "NotebookEdit",
+      "MultiEdit",
+      "WebFetch",
+      "WebSearch"
     ],
     "deny": []
   }

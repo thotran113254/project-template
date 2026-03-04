@@ -2,3 +2,8 @@ export * from "./api-response-types";
 export * from "./auth-types";
 export * from "./user-types";
 export * from "./resource-types";
+export * from "./hotel-types";
+export * from "./booking-types";
+export * from "./chat-types";
+export * from "./kb-types";
+export * from "./pricing-types";
