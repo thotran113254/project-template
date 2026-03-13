@@ -41,6 +41,9 @@ export const env = {
   RATE_LIMIT_MAX: parseInt(optionalEnv("RATE_LIMIT_MAX", "100"), 10),
   RATE_LIMIT_WINDOW_MS: parseInt(optionalEnv("RATE_LIMIT_WINDOW_MS", "60000"), 10),
 
+  // Gemini AI
+  GEMINI_API_KEY: optionalEnv("GEMINI_API_KEY", ""),
+
   // Logging
   LOG_LEVEL: optionalEnv("LOG_LEVEL", "info"),
 

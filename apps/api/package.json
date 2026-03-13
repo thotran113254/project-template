@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@app/shared": "workspace:*",
+    "@google/genai": "^1.45.0",
     "@hono/node-server": "^1.13.7",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",

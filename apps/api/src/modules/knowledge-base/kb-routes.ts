@@ -9,6 +9,7 @@ import {
   adminMiddleware,
 } from "../../middleware/auth-middleware.js";
 import * as kbService from "./kb-service.js";
+import { syncAllSheets } from "./google-sheets-sync-service.js";
 
 export const kbRoutes = new Hono();
 
@@ -49,4 +50,9 @@ kbRoutes.patch("/:id", adminMiddleware, async (c) => {
 kbRoutes.delete("/:id", adminMiddleware, async (c) => {
   await kbService.deleteArticle(c.req.param("id"));
   return c.json({ success: true, message: "Article deleted" });
+});
+
+kbRoutes.post("/sync", adminMiddleware, async (c) => {
+  const result = await syncAllSheets();
+  return c.json({ success: true, data: result });
 });

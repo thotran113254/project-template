@@ -18,6 +18,8 @@ export const knowledgeBase = pgTable(
     category: varchar("category", { length: 100 }).notNull(),
     tags: jsonb("tags").notNull().default([]),
     status: varchar("status", { length: 20 }).notNull().default("draft"),
+    sourceUrl: varchar("source_url", { length: 1000 }),
+    sourceType: varchar("source_type", { length: 50 }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

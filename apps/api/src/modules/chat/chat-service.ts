@@ -1,11 +1,9 @@
 import { eq, desc, asc } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { db } from "../../db/connection.js";
-import { chatSessions, chatMessages } from "../../db/schema/index.js";
+import { chatSessions, chatMessages, knowledgeBase } from "../../db/schema/index.js";
 import type { ChatSession, ChatMessage } from "@app/shared";
-
-const AI_PLACEHOLDER =
-  "I'm your AI Travel Assistant. I can help you find hotels, plan trips, and answer travel questions. This is a placeholder response.";
+import { generateChatResponse } from "./gemini-service.js";
 
 function toSession(row: typeof chatSessions.$inferSelect): ChatSession {
   return {
@@ -87,6 +85,20 @@ export async function getMessages(
   return rows.map(toMessage);
 }
 
+/** Build KB context string from all published articles */
+async function buildKbContext(): Promise<string> {
+  const articles = await db
+    .select({ title: knowledgeBase.title, content: knowledgeBase.content, category: knowledgeBase.category })
+    .from(knowledgeBase)
+    .where(eq(knowledgeBase.status, "published"));
+
+  if (articles.length === 0) return "(No knowledge base data available)";
+
+  return articles
+    .map((a) => `### [${a.category.toUpperCase()}] ${a.title}\n${a.content}`)
+    .join("\n\n---\n\n");
+}
+
 export async function sendMessage(
   sessionId: string,
   userId: string,
@@ -102,14 +114,31 @@ export async function sendMessage(
   if (session.userId !== userId)
     throw new HTTPException(403, { message: "Access denied" });
 
+  // Store user message
   const [userMsg] = await db
     .insert(chatMessages)
     .values({ sessionId, role: "user", content, metadata: {} })
     .returning();
 
+  // Fetch conversation history for context
+  const historyRows = await db
+    .select()
+    .from(chatMessages)
+    .where(eq(chatMessages.sessionId, sessionId))
+    .orderBy(asc(chatMessages.createdAt));
+
+  const history = historyRows.map((m) => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+
+  // Build KB context and call Gemini
+  const kbContext = await buildKbContext();
+  const aiResponse = await generateChatResponse(history, kbContext);
+
   const [assistantMsg] = await db
     .insert(chatMessages)
-    .values({ sessionId, role: "assistant", content: AI_PLACEHOLDER, metadata: {} })
+    .values({ sessionId, role: "assistant", content: aiResponse, metadata: {} })
     .returning();
 
   return [toMessage(userMsg!), toMessage(assistantMsg!)];
