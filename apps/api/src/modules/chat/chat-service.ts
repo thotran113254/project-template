@@ -200,14 +200,15 @@ export async function prepareStreamContext(
   return { userMsg: toMessage(userMsg!), history, kbContext };
 }
 
-/** Save complete AI response after streaming finishes */
+/** Save complete AI response with optional token usage metadata */
 export async function saveAssistantMessage(
   sessionId: string,
   fullContent: string,
+  metadata?: Record<string, unknown>,
 ): Promise<ChatMessage> {
   const [row] = await db
     .insert(chatMessages)
-    .values({ sessionId, role: "assistant", content: fullContent, metadata: {} })
+    .values({ sessionId, role: "assistant", content: fullContent, metadata: metadata ?? {} })
     .returning();
   return toMessage(row!);
 }

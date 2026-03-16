@@ -6,9 +6,14 @@ const ACCESS_TOKEN_KEY = "access_token";
 /** Interval (ms) between UI flushes — 50ms = 20fps, smooth enough without excessive re-renders */
 const FLUSH_INTERVAL_MS = 50;
 
+export interface TokenUsageInfo {
+  tokenUsage: { promptTokens: number; responseTokens: number; totalTokens: number };
+  estimatedCost: { inputCost: number; outputCost: number; totalCost: number };
+}
+
 interface UseChatStreamOptions {
   /** Called when stream finishes with the saved assistant message */
-  onComplete?: (userMsg: ChatMessage, assistantMsg: ChatMessage) => void;
+  onComplete?: (userMsg: ChatMessage, assistantMsg: ChatMessage, usage?: TokenUsageInfo) => void;
   onError?: (error: string) => void;
 }
 
@@ -18,6 +23,8 @@ interface UseChatStreamReturn {
   streamingText: string;
   isStreaming: boolean;
   error: string | null;
+  /** Token usage from last completed message */
+  lastUsage: TokenUsageInfo | null;
 }
 
 /**
@@ -29,6 +36,7 @@ export function useChatStream({ onComplete, onError }: UseChatStreamOptions = {}
   const [streamingText, setStreamingText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUsage, setLastUsage] = useState<TokenUsageInfo | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   // Buffer: raw accumulated text that hasn't been flushed to state yet
@@ -133,8 +141,13 @@ export function useChatStream({ onComplete, onError }: UseChatStreamOptions = {}
                 } else if (currentEvent === "ai-complete") {
                   // Final flush before completing
                   flushRemaining();
-                  const assistantMsg = data as ChatMessage;
-                  if (userMsg) onComplete?.(userMsg, assistantMsg);
+                  const { tokenUsage, estimatedCost, ...msgData } = data;
+                  const assistantMsg = msgData as ChatMessage;
+                  const usage = tokenUsage && estimatedCost
+                    ? { tokenUsage, estimatedCost } as TokenUsageInfo
+                    : undefined;
+                  if (usage) setLastUsage(usage);
+                  if (userMsg) onComplete?.(userMsg, assistantMsg, usage);
                 } else if (currentEvent === "error") {
                   throw new Error(data.error ?? "Stream error");
                 }
@@ -162,5 +175,5 @@ export function useChatStream({ onComplete, onError }: UseChatStreamOptions = {}
       });
   }, [onComplete, onError]);
 
-  return { send, streamingText, isStreaming, error };
+  return { send, streamingText, isStreaming, error, lastUsage };
 }

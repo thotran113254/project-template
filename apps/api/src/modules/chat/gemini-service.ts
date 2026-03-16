@@ -117,19 +117,43 @@ export async function generateChatResponse(
   return response.text ?? "";
 }
 
+/** Token usage metadata returned after streaming completes */
+export interface TokenUsage {
+  promptTokens: number;
+  responseTokens: number;
+  totalTokens: number;
+}
+
 /**
  * Generate a streaming chat response using Gemini.
- * Yields text chunks as they arrive from the model.
+ * Yields text chunks as they arrive. Calls onUsage with token counts when done.
  */
 export async function* generateChatResponseStream(
   messages: ChatMessage[],
   kbContext: string,
+  onUsage?: (usage: TokenUsage) => void,
 ): AsyncGenerator<string> {
   const { chat, lastMessage } = createGeminiChat(messages, kbContext);
   const stream = await chat.sendMessageStream({ message: lastMessage });
 
+  let lastChunk: unknown = null;
   for await (const chunk of stream) {
+    lastChunk = chunk;
     const text = chunk.text;
     if (text) yield text;
+  }
+
+  // Extract usageMetadata from the last chunk
+  if (lastChunk && onUsage) {
+    const meta = (lastChunk as Record<string, unknown>).usageMetadata as
+      | { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number }
+      | undefined;
+    if (meta) {
+      onUsage({
+        promptTokens: meta.promptTokenCount ?? 0,
+        responseTokens: meta.candidatesTokenCount ?? 0,
+        totalTokens: meta.totalTokenCount ?? 0,
+      });
+    }
   }
 }

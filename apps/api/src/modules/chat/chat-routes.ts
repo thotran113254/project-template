@@ -3,7 +3,16 @@ import { streamSSE } from "hono/streaming";
 import { createChatSessionSchema, sendMessageSchema } from "@app/shared";
 import { authMiddleware } from "../../middleware/auth-middleware.js";
 import * as chatService from "./chat-service.js";
-import { generateChatResponseStream } from "./gemini-service.js";
+import { generateChatResponseStream, type TokenUsage } from "./gemini-service.js";
+
+/** Gemini 3 Flash Preview pricing (USD per 1M tokens) */
+const PRICING = { inputPerMillion: 0.50, outputPerMillion: 3.00 } as const;
+
+function estimateCost(usage: TokenUsage): { inputCost: number; outputCost: number; totalCost: number } {
+  const inputCost = (usage.promptTokens / 1_000_000) * PRICING.inputPerMillion;
+  const outputCost = (usage.responseTokens / 1_000_000) * PRICING.outputPerMillion;
+  return { inputCost, outputCost, totalCost: inputCost + outputCost };
+}
 
 export const chatRoutes = new Hono();
 
@@ -71,10 +80,13 @@ chatRoutes.post("/sessions/:id/messages/stream", async (c) => {
       id: String(chunkId++),
     });
 
-    // Stream AI response chunks
+    // Stream AI response chunks with token usage tracking
     let fullContent = "";
+    let tokenUsage: TokenUsage | null = null;
+
     try {
-      for await (const text of generateChatResponseStream(history, kbContext)) {
+      const gen = generateChatResponseStream(history, kbContext, (u) => { tokenUsage = u; });
+      for await (const text of gen) {
         fullContent += text;
         await stream.writeSSE({
           data: JSON.stringify({ text }),
@@ -83,15 +95,25 @@ chatRoutes.post("/sessions/:id/messages/stream", async (c) => {
         });
       }
 
-      // Save complete response to DB
+      // Build metadata with token usage + cost estimate
+      const usageMeta: Record<string, unknown> = {};
+      if (tokenUsage) {
+        const cost = estimateCost(tokenUsage);
+        usageMeta.tokenUsage = tokenUsage;
+        usageMeta.estimatedCost = cost;
+        usageMeta.model = "gemini-3-flash-preview";
+      }
+
+      // Save complete response to DB with usage metadata
       const assistantMsg = await chatService.saveAssistantMessage(
         c.req.param("id"),
         fullContent,
+        usageMeta,
       );
 
-      // Send final event with complete message metadata
+      // Send final event with message + usage info
       await stream.writeSSE({
-        data: JSON.stringify(assistantMsg),
+        data: JSON.stringify({ ...assistantMsg, tokenUsage, estimatedCost: tokenUsage ? estimateCost(tokenUsage) : null }),
         event: "ai-complete",
         id: String(chunkId++),
       });

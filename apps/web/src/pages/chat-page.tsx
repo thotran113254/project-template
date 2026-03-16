@@ -7,6 +7,7 @@ import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatSuggestionChips } from "@/components/chat/chat-suggestion-chips";
 import { ChatSessionSidebar } from "@/components/chat/chat-session-sidebar";
+import { ChatTokenUsage } from "@/components/chat/chat-token-usage";
 import type { ChatSession, ChatMessage } from "@app/shared";
 
 interface ApiList<T> { data: T[] }
@@ -93,7 +94,7 @@ export default function ChatPage() {
     [queryClient, activeSessionId],
   );
 
-  const { send, streamingText, isStreaming, error } = useChatStream({
+  const { send, streamingText, isStreaming, error, lastUsage } = useChatStream({
     onComplete: onStreamComplete,
   });
 
@@ -195,6 +196,8 @@ export default function ChatPage() {
                 Không thể nhận phản hồi từ AI. Vui lòng thử lại.
               </div>
             )}
+            {/* Token usage for last message */}
+            {!isStreaming && lastUsage && <ChatTokenUsage usage={lastUsage} />}
             <div ref={bottomRef} />
           </div>
         </div>
