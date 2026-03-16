@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, type UIEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bot, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
@@ -29,8 +29,11 @@ async function fetchMessages(sessionId: string): Promise<ChatMessage[]> {
 export default function ChatPage() {
   const queryClient = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  /** Track if user is near bottom — only auto-scroll when true */
+  const isNearBottomRef = useRef(true);
 
   // Fetch all sessions
   const { data: sessions = [] } = useQuery({
@@ -108,10 +111,34 @@ export default function ChatPage() {
     setActiveSessionId(session.id);
   }
 
-  // Scroll to bottom
+  /** Check if scroll container is near bottom (within 100px) */
+  function handleScroll(e: UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+  }
+
+  /** Scroll to bottom — instant for new messages, no-op if user scrolled up */
+  function scrollToBottom(force?: boolean) {
+    if (!force && !isNearBottomRef.current) return;
+    bottomRef.current?.scrollIntoView({ behavior: force ? "instant" : "smooth" });
+  }
+
+  // Force scroll when session changes or new messages load
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [serverMessages.length, streamingText]);
+    isNearBottomRef.current = true;
+    scrollToBottom(true);
+  }, [activeSessionId]);
+
+  // Scroll on new server messages (user sent or AI complete)
+  useEffect(() => { scrollToBottom(true); }, [serverMessages.length]);
+
+  // Scroll during streaming — only if user is near bottom
+  useEffect(() => { scrollToBottom(); }, [streamingText]);
+
+  // Scroll when pending user message appears
+  useEffect(() => {
+    if (pendingUserMessage) scrollToBottom(true);
+  }, [pendingUserMessage]);
 
   return (
     <div className="flex h-full -m-6">
@@ -154,7 +181,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4">
           <div className="mx-auto max-w-2xl space-y-4">
             {!activeSessionId && (
               <div className="py-16 text-center text-sm text-[var(--muted-foreground)]">

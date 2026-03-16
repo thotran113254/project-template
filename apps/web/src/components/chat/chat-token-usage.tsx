@@ -21,8 +21,7 @@ export function ChatTokenUsage({ usage }: ChatTokenUsageProps) {
       <div className="flex items-center gap-1">
         <Coins size={11} className="shrink-0 opacity-60" />
         <span className="font-medium text-gray-600 dark:text-gray-300">Tokens:</span>
-        <span>Input {t.promptTokens.toLocaleString()}</span>
-        {t.cachedTokens > 0 && <span>(cached: {t.cachedTokens.toLocaleString()})</span>}
+        <span>Input {t.promptTokens.toLocaleString()}{t.cachedTokens > 0 ? ` (${t.cachedTokens.toLocaleString()} cached)` : ""}</span>
         <span className="text-gray-300 dark:text-gray-600">|</span>
         <span>Output {t.responseTokens.toLocaleString()}</span>
         {t.thinkingTokens > 0 && (
@@ -38,9 +37,9 @@ export function ChatTokenUsage({ usage }: ChatTokenUsageProps) {
       <div className="flex items-center gap-1">
         <span className="ml-3.5 font-medium text-gray-600 dark:text-gray-300">Chi phí:</span>
         <span>Input {fmt(c.inputCost)}</span>
-        {c.cachedCost > 0 && <span>+ Cached {fmt(c.cachedCost)}</span>}
+        {c.cachedCost > 0 && <span>+ Cache {fmt(c.cachedCost)}</span>}
         <span>+ Output {fmt(c.outputCost)}</span>
-        {c.thinkingCost > 0 && <span>+ Thinking {fmt(c.thinkingCost)}</span>}
+        {c.thinkingCost > 0 && <span>+ Think {fmt(c.thinkingCost)}</span>}
         <span>=</span>
         <span className="font-semibold text-teal-600 dark:text-teal-400">{fmt(c.totalCost)}</span>
       </div>
