@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { env } from "../../env.js";
 
 /** Build current date/time context string in Vietnam timezone */
@@ -97,7 +97,10 @@ function createGeminiChat(messages: ChatMessage[], kbContext: string) {
 
   const chat = client.chats.create({
     model: "gemini-3-flash-preview",
-    config: { systemInstruction: systemPrompt },
+    config: {
+      systemInstruction: systemPrompt,
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+    },
     history,
   });
 
