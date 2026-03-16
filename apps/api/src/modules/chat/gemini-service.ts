@@ -15,7 +15,6 @@ function buildDateContext(): string {
   });
   const formatted = vnFormatter.format(now);
 
-  // Get day of week number (0=CN, 1=T2, ..., 6=T7) in VN timezone
   const vnDay = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Ho_Chi_Minh",
     weekday: "short",
@@ -52,6 +51,9 @@ Bạn là AI Travel Assistant chuyên về du lịch Việt Nam cho nhân viên 
 ## KNOWLEDGE BASE (Dữ liệu thực tế từ hệ thống)
 `;
 
+const MODEL = "gemini-3-flash-preview";
+const CACHE_TTL = "600s"; // 10 minutes — matches AI context builder cache
+
 type MessageRole = "user" | "assistant";
 
 interface ChatMessage {
@@ -59,7 +61,6 @@ interface ChatMessage {
   content: string;
 }
 
-/** Map our role names to Gemini's role format */
 function toGeminiRole(role: MessageRole): "user" | "model" {
   return role === "assistant" ? "model" : "user";
 }
@@ -76,16 +77,79 @@ function getClient(): GoogleGenAI {
   return genai;
 }
 
-/** Build system prompt with date context and KB data */
+// ─── Explicit Context Caching ───────────────────────────────────────────────
+// Cache system instructions + KB context to reduce input token costs by ~50%.
+// Gemini 3 Flash requires minimum 1024 tokens for caching.
+
+let activeCacheName: string | null = null;
+let activeCacheKbHash: string | null = null;
+let activeCacheExpiresAt = 0;
+
+/** Simple hash to detect KB content changes */
+function simpleHash(str: string): string {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return h.toString(36);
+}
+
+/** Get or create a Gemini cache for system prompt + KB context */
+async function getOrCreateCache(kbContext: string): Promise<string | null> {
+  const client = getClient();
+  const dateContext = buildDateContext();
+  const systemPrompt = `## NGÀY HIỆN TẠI\n${dateContext}\n\n` + SYSTEM_INSTRUCTIONS;
+  const kbHash = simpleHash(kbContext);
+
+  // Reuse existing cache if KB hasn't changed and cache hasn't expired
+  if (activeCacheName && activeCacheKbHash === kbHash && Date.now() < activeCacheExpiresAt) {
+    return activeCacheName;
+  }
+
+  try {
+    // Create new cache with KB context as content + system instructions
+    const cache = await client.caches.create({
+      model: MODEL,
+      config: {
+        contents: [{ role: "user", parts: [{ text: kbContext }] }],
+        systemInstruction: systemPrompt,
+        ttl: CACHE_TTL,
+      },
+    });
+
+    activeCacheName = cache.name ?? null;
+    activeCacheKbHash = kbHash;
+    // Cache expires in TTL seconds — refresh 30s early to avoid edge cases
+    activeCacheExpiresAt = Date.now() + (parseInt(CACHE_TTL) - 30) * 1000;
+
+    console.log(`[Gemini] Created context cache: ${activeCacheName}`);
+    return activeCacheName;
+  } catch (err) {
+    // Caching might fail if content is too short (<1024 tokens) — fall back to no-cache
+    console.warn("[Gemini] Context caching failed, using direct mode:", (err as Error).message);
+    activeCacheName = null;
+    return null;
+  }
+}
+
+/** Invalidate cache when KB data changes (called from AI context builder) */
+export function invalidateGeminiCache(): void {
+  activeCacheName = null;
+  activeCacheKbHash = null;
+  activeCacheExpiresAt = 0;
+}
+
+// ─── Chat Creation ──────────────────────────────────────────────────────────
+
+/** Build system prompt (used when caching is not available) */
 function buildSystemPrompt(kbContext: string): string {
   const dateContext = buildDateContext();
   return `## NGÀY HIỆN TẠI\n${dateContext}\n\n` + SYSTEM_INSTRUCTIONS + "\n" + kbContext;
 }
 
-/** Build Gemini chat instance with history */
-function createGeminiChat(messages: ChatMessage[], kbContext: string) {
+/** Build Gemini chat instance — uses cache if available, falls back to direct prompt */
+async function createGeminiChat(messages: ChatMessage[], kbContext: string) {
   const client = getClient();
-  const systemPrompt = buildSystemPrompt(kbContext);
 
   const history = messages.slice(0, -1).map((m) => ({
     role: toGeminiRole(m.role),
@@ -95,27 +159,38 @@ function createGeminiChat(messages: ChatMessage[], kbContext: string) {
   const lastMessage = messages[messages.length - 1];
   if (!lastMessage) throw new Error("No messages provided");
 
-  const chat = client.chats.create({
-    model: "gemini-3-flash-preview",
-    config: {
-      systemInstruction: systemPrompt,
-      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-    },
-    history,
-  });
+  // Try to use explicit cache
+  const cacheName = await getOrCreateCache(kbContext);
 
-  return { chat, lastMessage: lastMessage.content };
+  const chat = cacheName
+    ? client.chats.create({
+        model: MODEL,
+        config: {
+          cachedContent: cacheName,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        },
+        history,
+      })
+    : client.chats.create({
+        model: MODEL,
+        config: {
+          systemInstruction: buildSystemPrompt(kbContext),
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        },
+        history,
+      });
+
+  return { chat, lastMessage: lastMessage.content, cached: !!cacheName };
 }
 
-/**
- * Generate a chat response (non-streaming) using Gemini.
- * Kept as fallback for non-SSE clients.
- */
+// ─── Response Generation ────────────────────────────────────────────────────
+
+/** Generate a non-streaming chat response (fallback) */
 export async function generateChatResponse(
   messages: ChatMessage[],
   kbContext: string,
 ): Promise<string> {
-  const { chat, lastMessage } = createGeminiChat(messages, kbContext);
+  const { chat, lastMessage } = await createGeminiChat(messages, kbContext);
   const response = await chat.sendMessage({ message: lastMessage });
   return response.text ?? "";
 }
@@ -129,7 +204,6 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
-/** Raw Gemini usageMetadata shape */
 interface GeminiUsageMeta {
   promptTokenCount?: number;
   candidatesTokenCount?: number;
@@ -138,7 +212,6 @@ interface GeminiUsageMeta {
   totalTokenCount?: number;
 }
 
-/** Extract token usage from Gemini response chunk */
 function extractUsage(chunk: unknown): TokenUsage | null {
   const meta = (chunk as Record<string, unknown>)?.usageMetadata as GeminiUsageMeta | undefined;
   if (!meta) return null;
@@ -151,16 +224,13 @@ function extractUsage(chunk: unknown): TokenUsage | null {
   };
 }
 
-/**
- * Generate a streaming chat response using Gemini.
- * Yields text chunks as they arrive. Calls onUsage with full token breakdown when done.
- */
+/** Generate a streaming chat response with token usage tracking */
 export async function* generateChatResponseStream(
   messages: ChatMessage[],
   kbContext: string,
   onUsage?: (usage: TokenUsage) => void,
 ): AsyncGenerator<string> {
-  const { chat, lastMessage } = createGeminiChat(messages, kbContext);
+  const { chat, lastMessage } = await createGeminiChat(messages, kbContext);
   const stream = await chat.sendMessageStream({ message: lastMessage });
 
   let lastChunk: unknown = null;

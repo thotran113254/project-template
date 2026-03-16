@@ -45,6 +45,8 @@ const CACHE_TTL = 5 * 60 * 1000;
 
 export function invalidateAiContextCache(): void {
   cachedContext = null;
+  // Also invalidate Gemini explicit cache when KB data changes
+  import("../chat/gemini-service.js").then((m) => m.invalidateGeminiCache()).catch(() => {});
 }
 
 async function getAiSettings(): Promise<Record<string, boolean>> {
