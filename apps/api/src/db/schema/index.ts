@@ -10,3 +10,23 @@ export * from "./pricing-rules-schema";
 export * from "./trips-schema";
 export * from "./itinerary-items-schema";
 export * from "./relations";
+
+// Market data tables
+export * from "./markets-schema";
+export * from "./market-competitors-schema";
+export * from "./market-customer-journeys-schema";
+export * from "./market-target-customers-schema";
+export * from "./market-attractions-schema";
+export * from "./market-dining-spots-schema";
+export * from "./market-transportation-schema";
+export * from "./market-inventory-strategies-schema";
+export * from "./evaluation-criteria-schema";
+export * from "./market-properties-schema";
+export * from "./property-evaluations-schema";
+export * from "./property-rooms-schema";
+export * from "./room-pricing-schema";
+export * from "./pricing-configs-schema";
+export * from "./itinerary-templates-schema";
+export * from "./itinerary-template-items-schema";
+export * from "./ai-data-settings-schema";
+export * from "./market-data-relations";

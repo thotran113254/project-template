@@ -14,7 +14,8 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "db:reset": "tsx src/db/reset.ts"
+    "db:reset": "tsx src/db/reset.ts",
+    "db:seed-market": "tsx src/db/seed/seed-market-data.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

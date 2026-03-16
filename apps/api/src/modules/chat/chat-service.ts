@@ -4,6 +4,7 @@ import { db } from "../../db/connection.js";
 import { chatSessions, chatMessages, knowledgeBase } from "../../db/schema/index.js";
 import type { ChatSession, ChatMessage } from "@app/shared";
 import { generateChatResponse } from "./gemini-service.js";
+import { buildAiContext } from "../market-data/ai-context-builder.js";
 
 function toSession(row: typeof chatSessions.$inferSelect): ChatSession {
   return {
@@ -85,18 +86,29 @@ export async function getMessages(
   return rows.map(toMessage);
 }
 
-/** Build KB context string from all published articles */
-async function buildKbContext(): Promise<string> {
+/** Fetch published KB articles as formatted string */
+async function getKbArticles(): Promise<string> {
   const articles = await db
     .select({ title: knowledgeBase.title, content: knowledgeBase.content, category: knowledgeBase.category })
     .from(knowledgeBase)
     .where(eq(knowledgeBase.status, "published"));
 
-  if (articles.length === 0) return "(No knowledge base data available)";
+  if (articles.length === 0) return "";
 
   return articles
     .map((a) => `### [${a.category.toUpperCase()}] ${a.title}\n${a.content}`)
     .join("\n\n---\n\n");
+}
+
+/** Build full context: structured market data + KB articles */
+async function buildKbContext(): Promise<string> {
+  const [marketContext, kbArticles] = await Promise.all([
+    buildAiContext(),
+    getKbArticles(),
+  ]);
+
+  if (!kbArticles) return marketContext;
+  return `${marketContext}\n\n--- KẾT THÚC DỮ LIỆU THỊ TRƯỜNG ---\n\n${kbArticles}`;
 }
 
 export async function sendMessage(

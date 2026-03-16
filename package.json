@@ -20,6 +20,7 @@
     "db:seed": "pnpm --filter @app/api run db:seed",
     "db:studio": "pnpm --filter @app/api run db:studio",
     "db:reset": "pnpm --filter @app/api run db:reset",
+    "db:seed-market": "pnpm --filter @app/api run db:seed-market",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",

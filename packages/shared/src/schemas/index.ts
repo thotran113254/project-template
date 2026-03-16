@@ -9,3 +9,5 @@ export * from "./chat-schemas";
 export * from "./kb-schemas";
 export * from "./pricing-schemas";
 export * from "./itinerary-schemas";
+export * from "./market-schemas";
+export * from "./market-property-schemas";

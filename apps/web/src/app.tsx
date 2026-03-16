@@ -22,6 +22,9 @@ const PricingAdminPage = lazy(() => import("@/pages/pricing-admin-page"));
 const KnowledgeBasePage = lazy(() => import("@/pages/knowledge-base-page"));
 const ProductManagementPage = lazy(() => import("@/pages/product-management-page"));
 const ItineraryDetailPage = lazy(() => import("@/pages/itinerary-detail-page"));
+const MarketsPage = lazy(() => import("@/pages/markets-page"));
+const MarketDetailPage = lazy(() => import("@/pages/market-detail-page"));
+const AiSettingsPage = lazy(() => import("@/pages/ai-settings-page"));
 
 function PageLoader() {
   return (
@@ -63,6 +66,9 @@ export function App() {
               <Route path="/users" element={<UsersPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/itinerary/:id" element={<ItineraryDetailPage />} />
+              <Route path="/markets" element={<MarketsPage />} />
+              <Route path="/markets/:id" element={<MarketDetailPage />} />
+              <Route path="/settings/ai" element={<AiSettingsPage />} />
             </Route>
           </Route>
 

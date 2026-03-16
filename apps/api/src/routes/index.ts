@@ -9,6 +9,17 @@ import { kbRoutes } from "../modules/knowledge-base/kb-routes.js";
 import { pricingRoutes } from "../modules/pricing/pricing-routes.js";
 import { dashboardRoutes } from "../modules/dashboard/dashboard-routes.js";
 import { itineraryRoutes } from "../modules/itinerary/itinerary-routes.js";
+import { marketDataRoutes } from "../modules/market-data/market-data-routes.js";
+import {
+  propertyDetailRoutes,
+  propertyRoomRoutes,
+  roomPricingRoutes,
+  evaluationCriteriaRoutes,
+  itineraryItemRoutes,
+  pricingConfigRoutes,
+  aiDataSettingRoutes,
+  aiToggleRoutes,
+} from "../modules/market-data/market-data-extra-routes.js";
 
 const routes = new Hono();
 
@@ -45,5 +56,32 @@ routes.route("/dashboard", dashboardRoutes);
 
 // Itinerary routes: /itinerary/*
 routes.route("/itinerary", itineraryRoutes);
+
+// Market data routes: /markets/*
+routes.route("/markets", marketDataRoutes);
+
+// Property detail: /properties/:id
+routes.route("/properties", propertyDetailRoutes);
+
+// Property rooms + evaluations: /properties/:propertyId/rooms|evaluations
+routes.route("/properties", propertyRoomRoutes);
+
+// Room pricing: /rooms/:roomId/pricing
+routes.route("/rooms", roomPricingRoutes);
+
+// Evaluation criteria: /evaluation-criteria
+routes.route("/evaluation-criteria", evaluationCriteriaRoutes);
+
+// Itinerary template detail + items: /itineraries/:templateId
+routes.route("/itineraries", itineraryItemRoutes);
+
+// Pricing configs: /pricing-configs
+routes.route("/pricing-configs", pricingConfigRoutes);
+
+// AI data settings: /ai-data-settings
+routes.route("/ai-data-settings", aiDataSettingRoutes);
+
+// AI visibility toggle: /ai-toggle/:entityType/:entityId
+routes.route("/ai-toggle", aiToggleRoutes);
 
 export { routes };

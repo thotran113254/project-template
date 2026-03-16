@@ -9,7 +9,7 @@ import {
   UserCircle,
   LayoutDashboard,
   Compass,
-  Map,
+  Globe,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/knowledge-base", label: "Cơ sở tri thức", icon: BookOpen, adminOnly: true },
   { to: "/products", label: "Sản phẩm & Giá", icon: Package, adminOnly: true },
   { to: "/users", label: "Người dùng", icon: Users, adminOnly: true },
+  { to: "/markets", label: "Thị trường", icon: Globe, adminOnly: true },
+  { to: "/settings/ai", label: "Cài đặt AI", icon: Settings, adminOnly: true },
 ];
 
 /** Sidebar navigation with role-based link visibility. */

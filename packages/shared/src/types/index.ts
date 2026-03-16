@@ -8,3 +8,5 @@ export * from "./chat-types";
 export * from "./kb-types";
 export * from "./pricing-types";
 export * from "./itinerary-types";
+export * from "./market-types";
+export * from "./market-property-types";
