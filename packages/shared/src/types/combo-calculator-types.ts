@@ -31,6 +31,8 @@ export interface ComboCalculationResult {
   discountSubtotal: number | null;
   discountGrandTotal: number | null;
   discountPerPerson: number | null;
+  /** Warnings about calculation (e.g., no rooms found, missing pricing) */
+  warnings?: string[];
 }
 
 export interface ComboRoomAllocation {

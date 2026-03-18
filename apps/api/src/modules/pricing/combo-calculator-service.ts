@@ -48,6 +48,8 @@ export async function calculateCombo(
 ): Promise<ComboCalculationResult> {
   const isAdmin = userRole === "admin";
   const numPeople = dto.numAdults + dto.numChildrenUnder10 + dto.numChildrenUnder5;
+  // Under-5 children don't consume room capacity (sleep with parents)
+  const numRoomGuests = dto.numAdults + dto.numChildrenUnder10;
 
   const market = await resolveMarket(dto.marketSlug);
   const comboType = nightsToComboType(dto.numNights);
@@ -59,7 +61,16 @@ export async function calculateCombo(
   const candidates = await resolveRoomCandidatesMultiDay(
     market.id, dto.propertySlug, comboType, dayTypes,
   );
-  const rooms = allocateRoomsMultiDay(candidates, numPeople, dayTypes, isAdmin);
+  const rooms = allocateRoomsMultiDay(
+    candidates, numRoomGuests, dayTypes, isAdmin,
+    dto.numAdults, dto.numChildrenUnder10,
+  );
+
+  // Collect warnings for edge cases
+  const warnings: string[] = [];
+  if (rooms.length === 0) {
+    warnings.push("Không tìm thấy phòng phù hợp cho thị trường/loại ngày đã chọn");
+  }
 
   const roomCost = rooms.reduce((s, r) => s + r.totalRoomCost, 0);
   const roomDiscountCost = isAdmin
@@ -123,5 +134,6 @@ export async function calculateCombo(
     discountSubtotal: isAdmin ? discountSubtotal : null,
     discountGrandTotal: isAdmin ? discountGrandTotal : null,
     discountPerPerson: isAdmin ? discountPerPerson : null,
+    warnings: warnings.length > 0 ? warnings : undefined,
   };
 }

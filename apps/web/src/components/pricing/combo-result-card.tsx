@@ -1,6 +1,6 @@
 import type { ComboCalculationResult } from "@app/shared";
 
-const fmtVnd = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
+import { fmtVnd } from "@/lib/format-currency";
 
 const DAY_TYPE_LABELS: Record<string, string> = {
   weekday: "T2-T5", friday: "T6", saturday: "T7", sunday: "CN", holiday: "Ngày lễ",

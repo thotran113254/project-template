@@ -137,6 +137,8 @@ export async function resolveRoomCandidates(
 function calcRoomNightCost(
   p: RoomPriceData,
   guestsInRoom: number,
+  extraAdults: number,
+  extraChildren: number,
   isAdmin: boolean,
 ): { price: number; discount: number | null } {
   let pricePerRoom: number;
@@ -149,10 +151,14 @@ function calcRoomNightCost(
     if (isAdmin && p.discountPrice !== null) discountPerRoom = p.discountPrice;
   }
 
-  const extraGuests = Math.max(0, guestsInRoom - p.standardGuests);
-  if (extraGuests > 0 && p.extraAdultSurcharge) {
-    pricePerRoom += extraGuests * p.extraAdultSurcharge;
-    if (discountPerRoom !== null) discountPerRoom += extraGuests * p.extraAdultSurcharge;
+  // Apply surcharges for extra adults and children separately
+  if (extraAdults > 0 && p.extraAdultSurcharge) {
+    pricePerRoom += extraAdults * p.extraAdultSurcharge;
+    if (discountPerRoom !== null) discountPerRoom += extraAdults * p.extraAdultSurcharge;
+  }
+  if (extraChildren > 0 && p.extraChildSurcharge) {
+    pricePerRoom += extraChildren * p.extraChildSurcharge;
+    if (discountPerRoom !== null) discountPerRoom += extraChildren * p.extraChildSurcharge;
   }
 
   return { price: pricePerRoom, discount: discountPerRoom };
@@ -164,9 +170,11 @@ function calcRoomNightCost(
  */
 export function allocateRoomsMultiDay(
   candidates: RoomCandidateMultiDay[],
-  numPeople: number,
+  numRoomGuests: number,
   dayTypes: string[],
   isAdmin: boolean,
+  numAdults = numRoomGuests,
+  numChildrenUnder10 = 0,
 ): ComboRoomAllocation[] {
   // Count nights per dayType
   const nightsPerDayType = new Map<string, number>();
@@ -175,8 +183,11 @@ export function allocateRoomsMultiDay(
   }
 
   const allocations: ComboRoomAllocation[] = [];
-  let remaining = numPeople;
+  let remaining = numRoomGuests;
   const availableCandidates = [...candidates];
+  // Track how many adults/children still need rooms (for surcharge calc)
+  let adultsLeft = numAdults;
+  let childrenLeft = numChildrenUnder10;
 
   while (remaining > 0 && availableCandidates.length > 0) {
     const best =
@@ -185,23 +196,33 @@ export function allocateRoomsMultiDay(
 
     const guestsInRoom = Math.min(best.room.capacity, remaining);
 
+    // Determine how many extra adults vs children in this room
+    const standardCap = best.prices.values().next().value!.standardGuests;
+    const extraTotal = Math.max(0, guestsInRoom - standardCap);
+    const adultsInRoom = Math.min(adultsLeft, guestsInRoom);
+    const childrenInRoom = guestsInRoom - adultsInRoom;
+    const extraAdults = Math.max(0, adultsInRoom - standardCap);
+    const extraChildren = extraTotal - extraAdults > 0 ? extraTotal - extraAdults : 0;
+
     // Sum room cost across all night types
     let totalRoomCost = 0;
     let totalDiscountCost: number | null = isAdmin ? 0 : null;
 
     for (const [dt, nights] of nightsPerDayType.entries()) {
       const p = best.prices.get(dt)!;
-      const { price, discount } = calcRoomNightCost(p, guestsInRoom, isAdmin);
+      const { price, discount } = calcRoomNightCost(p, guestsInRoom, extraAdults, extraChildren, isAdmin);
       totalRoomCost += price * nights;
       if (totalDiscountCost !== null) {
         totalDiscountCost += (discount ?? price) * nights;
       }
     }
 
-    // Use first night's dayType for per-room display price
     const firstDt = dayTypes[0]!;
     const firstP = best.prices.get(firstDt)!;
-    const { price: pricePerRoom, discount: discountPerRoom } = calcRoomNightCost(firstP, guestsInRoom, isAdmin);
+    const { price: pricePerRoom, discount: discountPerRoom } = calcRoomNightCost(firstP, guestsInRoom, extraAdults, extraChildren, isAdmin);
+
+    adultsLeft -= adultsInRoom;
+    childrenLeft -= childrenInRoom;
 
     allocations.push({
       propertyName: best.propertyName,

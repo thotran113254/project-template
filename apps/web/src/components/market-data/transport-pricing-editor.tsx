@@ -15,7 +15,7 @@ interface TransportPricingEditorProps {
   isAdmin: boolean;
 }
 
-const fmtVnd = (n: number): string => new Intl.NumberFormat("vi-VN").format(n) + "₫";
+import { fmtVnd } from "@/lib/format-currency";
 
 const VEHICLE_CLASSES = ["cabin", "limousine", "sleeper", "speed_boat", "small_boat"];
 const SEAT_TYPES = ["single", "double", "front", "middle", "back", "vip", "standard", "sleeper"];

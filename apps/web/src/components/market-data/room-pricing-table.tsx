@@ -10,7 +10,7 @@ import { apiClient } from "@/lib/api-client";
 import { usePricingOptions } from "@/hooks/use-pricing-options";
 import type { PropertyRoom, RoomPricing } from "@app/shared";
 
-const fmtVnd = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
+import { fmtVnd } from "@/lib/format-currency";
 
 type PricingForm = {
   comboType: string; dayType: string; standardGuests: string;

@@ -56,6 +56,7 @@ type FormState = {
   ferryClass: string;
   tripType: string;
   departureProvince: string;
+  profitMarginOverride: string;
 };
 
 function defaultDayTypes(n: number): string[] {
@@ -68,6 +69,7 @@ const EMPTY_FORM: FormState = {
   numNights: 1, dayTypes: defaultDayTypes(1),
   transportClass: "", ferryClass: "",
   tripType: "roundtrip", departureProvince: "",
+  profitMarginOverride: "",
 };
 
 const selectCls = "flex h-9 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-1 text-sm";
@@ -140,6 +142,8 @@ export default function ComboCalculatorPage() {
       if (form.transportClass) payload.transportClass = form.transportClass;
       if (form.ferryClass) payload.ferryClass = form.ferryClass;
       if (form.departureProvince) payload.departureProvince = form.departureProvince;
+      const marginNum = Number(form.profitMarginOverride);
+      if (form.profitMarginOverride && !isNaN(marginNum)) payload.profitMarginOverride = marginNum;
       const res = await apiClient.post<{ data: ComboCalculationResult }>("/combo-calculator/calculate", payload);
       return res.data.data;
     },
@@ -275,6 +279,19 @@ export default function ComboCalculatorPage() {
             </div>
           )}
 
+          {/* Profit margin override (admin only) */}
+          {isAdmin && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-orange-600">Biên lợi nhuận % (override)</label>
+              <Input
+                type="number" min={0} max={100}
+                placeholder="Mặc định từ DB (15%)"
+                value={form.profitMarginOverride}
+                onChange={(e) => setField("profitMarginOverride", e.target.value)}
+              />
+            </div>
+          )}
+
           {/* Ferry */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium">Tàu</label>
@@ -317,7 +334,20 @@ export default function ComboCalculatorPage() {
           )}
 
           {result && !calcMutation.isPending && (
-            <ComboResultCard result={result} isAdmin={isAdmin} />
+            <>
+              {result.warnings && result.warnings.length > 0 && (
+                <div className="mb-4 rounded-md bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-700 dark:text-amber-400">
+                  <div className="flex items-center gap-2 mb-1 font-medium">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Lưu ý</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1">
+                    {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                </div>
+              )}
+              <ComboResultCard result={result} isAdmin={isAdmin} />
+            </>
           )}
         </div>
       </div>
