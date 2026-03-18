@@ -167,6 +167,8 @@ export const updateAiChatConfigSchema = z.object({
   configValue: z.string(),
 });
 
+const DAY_TYPE_ENUM = z.enum(["weekday", "friday", "saturday", "sunday", "holiday"]);
+
 export const comboCalculateSchema = z.object({
   marketSlug: z.string().min(1),
   propertySlug: z.string().optional(),
@@ -174,11 +176,21 @@ export const comboCalculateSchema = z.object({
   numChildrenUnder10: z.number().int().min(0).default(0),
   numChildrenUnder5: z.number().int().min(0).default(0),
   numNights: z.number().int().min(1).max(30),
-  dayType: z.enum(["weekday", "friday", "saturday", "sunday", "holiday"]),
+  /** Array of day types, one per night - for mixed-day bookings */
+  dayTypes: z.array(DAY_TYPE_ENUM).optional(),
+  /** Single day type for all nights (backward compat) */
+  dayType: DAY_TYPE_ENUM.optional(),
   transportClass: z.enum(["cabin", "limousine", "sleeper"]).optional(),
   ferryClass: z.enum(["speed_boat", "small_boat"]).optional(),
   profitMarginOverride: z.number().min(0).max(100).optional(),
-});
+  /** Departure province for cross-province surcharge */
+  departureProvince: z.string().optional(),
+  /** Trip type: roundtrip (default) or oneway */
+  tripType: z.enum(["oneway", "roundtrip"]).optional(),
+}).refine(
+  (d) => (d.dayTypes && d.dayTypes.length > 0) || d.dayType,
+  { message: "dayType or dayTypes required" },
+);
 
 export const aiToggleSchema = z.object({
   entityType: z.enum([

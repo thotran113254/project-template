@@ -36,6 +36,13 @@ const FERRY_OPTIONS = [
   { value: "small_boat", label: "Tàu nhỏ" },
 ];
 
+const TRIP_TYPE_OPTIONS = [
+  { value: "roundtrip", label: "Khứ hồi" },
+  { value: "oneway", label: "Một chiều" },
+];
+
+const NIGHT_LABELS = ["Đêm 1", "Đêm 2", "Đêm 3"];
+
 type FormState = {
   marketSlug: string;
   propertySlug: string;
@@ -43,16 +50,24 @@ type FormState = {
   numChildrenUnder10: number;
   numChildrenUnder5: number;
   numNights: number;
-  dayType: string;
+  /** Per-night day types (length === numNights) */
+  dayTypes: string[];
   transportClass: string;
   ferryClass: string;
+  tripType: string;
+  departureProvince: string;
 };
+
+function defaultDayTypes(n: number): string[] {
+  return Array(n).fill("weekday");
+}
 
 const EMPTY_FORM: FormState = {
   marketSlug: "", propertySlug: "", numAdults: 2,
   numChildrenUnder10: 0, numChildrenUnder5: 0,
-  numNights: 1, dayType: "weekday",
+  numNights: 1, dayTypes: defaultDayTypes(1),
   transportClass: "", ferryClass: "",
+  tripType: "roundtrip", departureProvince: "",
 };
 
 const selectCls = "flex h-9 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-1 text-sm";
@@ -67,6 +82,23 @@ export default function ComboCalculatorPage() {
 
   const setField = <K extends keyof FormState>(key: K, val: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
+
+  const handleNumNightsChange = (n: number) => {
+    setForm((f) => {
+      const existing = f.dayTypes;
+      // Extend or truncate dayTypes to match new numNights
+      const newDayTypes = Array(n).fill("weekday").map((def, i) => existing[i] ?? def);
+      return { ...f, numNights: n, dayTypes: newDayTypes };
+    });
+  };
+
+  const handleDayTypeChange = (nightIndex: number, value: string) => {
+    setForm((f) => {
+      const updated = [...f.dayTypes];
+      updated[nightIndex] = value;
+      return { ...f, dayTypes: updated };
+    });
+  };
 
   // Load markets
   const { data: markets = [], isLoading: marketsLoading } = useQuery({
@@ -88,7 +120,6 @@ export default function ComboCalculatorPage() {
     },
   });
 
-  // Reset property when market changes
   const handleMarketChange = (slug: string) => {
     setForm((f) => ({ ...f, marketSlug: slug, propertySlug: "" }));
   };
@@ -101,11 +132,14 @@ export default function ComboCalculatorPage() {
         numChildrenUnder10: form.numChildrenUnder10,
         numChildrenUnder5: form.numChildrenUnder5,
         numNights: form.numNights,
-        dayType: form.dayType,
+        // Use dayTypes array (supports mixed-day bookings)
+        dayTypes: form.dayTypes,
+        tripType: (form.tripType as "oneway" | "roundtrip") || undefined,
       };
       if (form.propertySlug) payload.propertySlug = form.propertySlug;
       if (form.transportClass) payload.transportClass = form.transportClass;
       if (form.ferryClass) payload.ferryClass = form.ferryClass;
+      if (form.departureProvince) payload.departureProvince = form.departureProvince;
       const res = await apiClient.post<{ data: ComboCalculationResult }>("/combo-calculator/calculate", payload);
       return res.data.data;
     },
@@ -117,6 +151,9 @@ export default function ComboCalculatorPage() {
   });
 
   const canSubmit = !!form.marketSlug && form.numAdults >= 1;
+
+  // Check if all nights share the same day type (for compact display)
+  const allSameDayType = form.dayTypes.every((dt) => dt === form.dayTypes[0]);
 
   return (
     <div className="flex h-full flex-col">
@@ -169,17 +206,43 @@ export default function ComboCalculatorPage() {
           {/* Nights */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium">Số đêm</label>
-            <select className={selectCls} value={form.numNights} onChange={(e) => setField("numNights", Number(e.target.value))}>
+            <select className={selectCls} value={form.numNights} onChange={(e) => handleNumNightsChange(Number(e.target.value))}>
               {NUM_NIGHTS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
-          {/* Day type */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Loại ngày</label>
-            <select className={selectCls} value={form.dayType} onChange={(e) => setField("dayType", e.target.value)}>
-              {DAY_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+          {/* Day types per night - show individual selector per night when numNights > 1 */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">
+              Loại ngày{form.numNights > 1 && " (từng đêm)"}
+            </label>
+            {form.numNights === 1 ? (
+              <select
+                className={selectCls}
+                value={form.dayTypes[0] ?? "weekday"}
+                onChange={(e) => handleDayTypeChange(0, e.target.value)}
+              >
+                {DAY_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            ) : (
+              <div className="space-y-2">
+                {form.dayTypes.map((dt, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-xs text-[var(--muted-foreground)] w-12 shrink-0">{NIGHT_LABELS[i] ?? `Đêm ${i + 1}`}</span>
+                    <select
+                      className={selectCls}
+                      value={dt}
+                      onChange={(e) => handleDayTypeChange(i, e.target.value)}
+                    >
+                      {DAY_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                ))}
+                {!allSameDayType && (
+                  <p className="text-xs text-teal-600">Lịch hỗn hợp: các đêm có loại ngày khác nhau</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Transport */}
@@ -189,6 +252,28 @@ export default function ComboCalculatorPage() {
               {TRANSPORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
+
+          {/* Trip type - only show when transport is selected */}
+          {form.transportClass && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Loại chuyến</label>
+              <select className={selectCls} value={form.tripType} onChange={(e) => setField("tripType", e.target.value)}>
+                {TRIP_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Departure province - only show when transport is selected */}
+          {form.transportClass && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Tỉnh khởi hành</label>
+              <Input
+                placeholder="Vd: Quảng Ninh (để trống nếu không)"
+                value={form.departureProvince}
+                onChange={(e) => setField("departureProvince", e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Ferry */}
           <div className="flex flex-col gap-1">

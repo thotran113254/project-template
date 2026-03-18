@@ -202,7 +202,7 @@ const getTransportPricing: FunctionDeclaration = {
 const calculateComboPrice: FunctionDeclaration = {
   name: "calculateComboPrice",
   description:
-    "Tính giá combo trọn gói: phòng + vận chuyển + tàu (nếu có). Áp dụng biên lợi nhuận. Trả về báo giá chi tiết từng hạng mục và giá/người. Dùng khi sale cần báo giá combo, tính giá trọn gói cho khách.",
+    "Tính giá combo trọn gói: phòng + vận chuyển + tàu (nếu có). Áp dụng biên lợi nhuận. Trả về báo giá chi tiết từng hạng mục và giá/người. Dùng khi sale cần báo giá combo, tính giá trọn gói cho khách. Hỗ trợ lịch nhiều ngày có loại ngày khác nhau (ví dụ T5+T6+T7).",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -224,9 +224,15 @@ const calculateComboPrice: FunctionDeclaration = {
         type: Type.NUMBER,
         description: "Số đêm: 1 = 2N1Đ, 2 = 3N2Đ",
       },
+      dayTypes: {
+        type: Type.ARRAY,
+        description:
+          "Loại ngày từng đêm, dùng khi các đêm khác nhau loại ngày (ví dụ đặt T5+T6+T7 = [\"weekday\",\"friday\",\"saturday\"]). Ưu tiên hơn dayType.",
+        items: { type: Type.STRING },
+      },
       dayType: {
         type: Type.STRING,
-        description: "weekday, friday, saturday, holiday",
+        description: "weekday, friday, saturday, sunday, holiday — dùng khi tất cả đêm cùng loại. Bỏ qua nếu đã có dayTypes.",
       },
       transportClass: {
         type: Type.STRING,
@@ -236,8 +242,16 @@ const calculateComboPrice: FunctionDeclaration = {
         type: Type.STRING,
         description: "speed_boat, small_boat (optional)",
       },
+      tripType: {
+        type: Type.STRING,
+        description: "roundtrip (mặc định) hoặc oneway — loại hình vận chuyển (optional)",
+      },
+      departureProvince: {
+        type: Type.STRING,
+        description: "Tỉnh khởi hành nếu khác tỉnh, để tính phụ thu liên tỉnh (vd: 'Quảng Ninh') (optional)",
+      },
     },
-    required: ["marketSlug", "numAdults", "numNights", "dayType"],
+    required: ["marketSlug", "numAdults", "numNights"],
   },
 };
 

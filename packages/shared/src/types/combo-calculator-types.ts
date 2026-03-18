@@ -5,14 +5,21 @@ export interface ComboCalculateRequest {
   numChildrenUnder10: number;
   numChildrenUnder5: number;
   numNights: number;
-  dayType: string; // weekday, friday, saturday, holiday
+  /** One dayType per night, e.g. ["weekday","friday","saturday"] for Thu+Fri+Sat */
+  dayTypes?: string[];
+  /** Single dayType (backward compat) - all nights share same type */
+  dayType?: string;
   transportClass?: string; // cabin, limousine, sleeper
   ferryClass?: string; // speed_boat, small_boat (null = no ferry)
   profitMarginOverride?: number;
+  /** Departure province for cross-province surcharge, e.g. "Quảng Ninh" */
+  departureProvince?: string;
+  /** Trip type: roundtrip (default) or oneway */
+  tripType?: "oneway" | "roundtrip";
 }
 
 export interface ComboCalculationResult {
-  input: { numPeople: number; numNights: number; dayType: string };
+  input: { numPeople: number; numNights: number; dayType: string; dayTypes?: string[]; tripType?: string };
   rooms: ComboRoomAllocation[];
   transport: ComboTransportLine | null;
   ferry: ComboTransportLine | null;

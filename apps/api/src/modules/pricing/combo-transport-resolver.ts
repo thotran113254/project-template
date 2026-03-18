@@ -12,6 +12,8 @@ export async function resolveTransportLine(
   numChildrenUnder10: number,
   numChildrenUnder5: number,
   isAdmin: boolean,
+  tripType?: string,
+  departureProvince?: string,
 ): Promise<ComboTransportLine | null> {
   if (!vehicleClass) return null;
 
@@ -45,23 +47,42 @@ export async function resolveTransportLine(
   if (!pricingRows.length) return null;
   const tp = pricingRows[0]!;
 
-  const basePrice = tp.roundtripListedPrice ?? tp.onewayListedPrice;
-  const baseDiscount = tp.roundtripDiscountPrice ?? tp.onewayDiscountPrice ?? null;
-  const discountAmt = tp.childDiscountAmount ?? 0;
+  // FIX 5: Trip type - use oneway price if requested, otherwise roundtrip
+  const isRoundtrip = tripType !== "oneway";
+  const basePrice = isRoundtrip
+    ? (tp.roundtripListedPrice ?? tp.onewayListedPrice)
+    : tp.onewayListedPrice;
+  const baseDiscount = isRoundtrip
+    ? (tp.roundtripDiscountPrice ?? tp.onewayDiscountPrice ?? null)
+    : (tp.onewayDiscountPrice ?? null);
 
+  const discountAmt = tp.childDiscountAmount ?? 0;
   const childFreeCount = numChildrenUnder5;
   const childDiscountCount = numChildrenUnder10;
   const totalPeople = numAdults + numChildrenUnder10 + numChildrenUnder5;
 
   const adultCost = numAdults * basePrice;
   const childDiscountCost = childDiscountCount * Math.max(0, basePrice - discountAmt);
-  const totalCost = adultCost + childDiscountCost;
+  let totalCost = adultCost + childDiscountCost;
 
   let totalDiscountCost: number | null = null;
   if (isAdmin && baseDiscount !== null) {
     const adultDiscountCost = numAdults * baseDiscount;
     const childDiscountCostAdj = childDiscountCount * Math.max(0, baseDiscount - discountAmt);
     totalDiscountCost = adultDiscountCost + childDiscountCostAdj;
+  }
+
+  // FIX 4: Cross-province surcharge
+  if (departureProvince && tp.crossProvinceSurcharges) {
+    const surcharges = tp.crossProvinceSurcharges as Array<{ province: string; surcharge: number }>;
+    const match = surcharges.find((s) => s.province === departureProvince);
+    if (match) {
+      // Surcharge applies to paying passengers (adults + children over 5)
+      const payingPassengers = numAdults + numChildrenUnder10;
+      const surchargeTotal = match.surcharge * payingPassengers;
+      totalCost += surchargeTotal;
+      if (totalDiscountCost !== null) totalDiscountCost += surchargeTotal;
+    }
   }
 
   return {

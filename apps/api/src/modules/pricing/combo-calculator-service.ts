@@ -2,7 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../../db/connection.js";
 import { pricingConfigs } from "../../db/schema/index.js";
 import { resolveMarket } from "../market-data/ai-data-fetchers.js";
-import { resolveRoomCandidates, allocateRooms } from "./combo-room-allocator.js";
+import { resolveRoomCandidatesMultiDay, allocateRoomsMultiDay } from "./combo-room-allocator.js";
 import { resolveTransportLine } from "./combo-transport-resolver.js";
 import type { ComboCalculateRequest, ComboCalculationResult } from "@app/shared";
 
@@ -29,6 +29,17 @@ async function loadProfitMargin(marketId: string, override?: number): Promise<nu
   return typeof pct === "number" ? pct : 0;
 }
 
+/** Normalize dayTypes: prefer dayTypes array, fall back to repeating dayType */
+function normalizeDayTypes(dto: ComboCalculateRequest): string[] {
+  if (dto.dayTypes && dto.dayTypes.length > 0) {
+    return dto.dayTypes;
+  }
+  if (dto.dayType) {
+    return Array(dto.numNights).fill(dto.dayType);
+  }
+  throw new Error("dayType or dayTypes required");
+}
+
 // ─── Main Calculator ──────────────────────────────────────────────────────────
 
 export async function calculateCombo(
@@ -41,25 +52,30 @@ export async function calculateCombo(
   const market = await resolveMarket(dto.marketSlug);
   const comboType = nightsToComboType(dto.numNights);
 
-  // Room allocation
-  const candidates = await resolveRoomCandidates(
-    market.id, dto.propertySlug, comboType, dto.dayType,
+  // FIX 1: Normalize day types per night (supports mixed-day bookings)
+  const dayTypes = normalizeDayTypes(dto);
+
+  // FIX 1+2+3: Single JOIN query, season-aware, multi-day support
+  const candidates = await resolveRoomCandidatesMultiDay(
+    market.id, dto.propertySlug, comboType, dayTypes,
   );
-  const rooms = allocateRooms(candidates, numPeople, isAdmin);
+  const rooms = allocateRoomsMultiDay(candidates, numPeople, dayTypes, isAdmin);
 
   const roomCost = rooms.reduce((s, r) => s + r.totalRoomCost, 0);
   const roomDiscountCost = isAdmin
     ? rooms.reduce((s, r) => s + (r.totalDiscountCost ?? r.totalRoomCost), 0)
     : null;
 
-  // Transport + Ferry
+  // FIX 4+5: Pass tripType and departureProvince to transport resolver
   const transport = await resolveTransportLine(
     market.id, "bus", dto.transportClass,
     dto.numAdults, dto.numChildrenUnder10, dto.numChildrenUnder5, isAdmin,
+    dto.tripType, dto.departureProvince,
   );
   const ferry = await resolveTransportLine(
     market.id, "ferry", dto.ferryClass,
     dto.numAdults, dto.numChildrenUnder10, dto.numChildrenUnder5, isAdmin,
+    dto.tripType, dto.departureProvince,
   );
 
   const transportCost = transport?.totalCost ?? 0;
@@ -72,7 +88,6 @@ export async function calculateCombo(
       + (ferry?.totalDiscountCost ?? ferryCost)
     : null;
 
-  // Profit margin (override only for admin)
   const marginOverride = isAdmin ? dto.profitMarginOverride : undefined;
   const profitMarginPercent = await loadProfitMargin(market.id, marginOverride);
   const marginAmount = Math.round(subtotal * profitMarginPercent / 100);
@@ -86,8 +101,17 @@ export async function calculateCombo(
   const discountPerPerson = discountGrandTotal !== null && numPeople > 0
     ? Math.round(discountGrandTotal / numPeople) : null;
 
+  // Primary dayType for display: first night's type (or single dayType)
+  const displayDayType = dto.dayType ?? dayTypes[0] ?? "weekday";
+
   return {
-    input: { numPeople, numNights: dto.numNights, dayType: dto.dayType },
+    input: {
+      numPeople,
+      numNights: dto.numNights,
+      dayType: displayDayType,
+      dayTypes: dto.dayTypes ?? undefined,
+      tripType: dto.tripType,
+    },
     rooms,
     transport,
     ferry,
