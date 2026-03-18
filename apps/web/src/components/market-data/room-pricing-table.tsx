@@ -12,8 +12,21 @@ import type { PropertyRoom, RoomPricing } from "@app/shared";
 
 const fmtVnd = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 
-type PricingForm = { comboType: string; dayType: string; standardGuests: string; price: string; pricePlus1: string; priceMinus1: string; extraNight: string };
-const EMPTY_PRICING: PricingForm = { comboType: "", dayType: "", standardGuests: "2", price: "", pricePlus1: "", priceMinus1: "", extraNight: "" };
+type PricingForm = {
+  comboType: string; dayType: string; standardGuests: string;
+  price: string; pricePlus1: string; priceMinus1: string; extraNight: string;
+  discountPrice: string; discountPricePlus1: string; discountPriceMinus1: string;
+  underStandardPrice: string; extraAdultSurcharge: string;
+  extraChildSurcharge: string; includedAmenities: string;
+};
+
+const EMPTY_PRICING: PricingForm = {
+  comboType: "", dayType: "", standardGuests: "2",
+  price: "", pricePlus1: "", priceMinus1: "", extraNight: "",
+  discountPrice: "", discountPricePlus1: "", discountPriceMinus1: "",
+  underStandardPrice: "", extraAdultSurcharge: "",
+  extraChildSurcharge: "", includedAmenities: "",
+};
 
 /** Pricing management table for a single room with full CRUD. */
 export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: boolean }) {
@@ -42,6 +55,13 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
         pricePlus1: pForm.pricePlus1 ? Number(pForm.pricePlus1) : null,
         priceMinus1: pForm.priceMinus1 ? Number(pForm.priceMinus1) : null,
         extraNight: pForm.extraNight ? Number(pForm.extraNight) : null,
+        discountPrice: pForm.discountPrice ? Number(pForm.discountPrice) : null,
+        discountPricePlus1: pForm.discountPricePlus1 ? Number(pForm.discountPricePlus1) : null,
+        discountPriceMinus1: pForm.discountPriceMinus1 ? Number(pForm.discountPriceMinus1) : null,
+        underStandardPrice: pForm.underStandardPrice ? Number(pForm.underStandardPrice) : null,
+        extraAdultSurcharge: pForm.extraAdultSurcharge ? Number(pForm.extraAdultSurcharge) : null,
+        extraChildSurcharge: pForm.extraChildSurcharge ? Number(pForm.extraChildSurcharge) : null,
+        includedAmenities: pForm.includedAmenities || null,
       };
       if (editPricing) {
         await apiClient.patch(`/rooms/${room.id}/pricing/${editPricing.id}`, payload);
@@ -80,6 +100,13 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
       pricePlus1: p.pricePlus1 ? String(p.pricePlus1) : "",
       priceMinus1: p.priceMinus1 ? String(p.priceMinus1) : "",
       extraNight: p.extraNight ? String(p.extraNight) : "",
+      discountPrice: p.discountPrice ? String(p.discountPrice) : "",
+      discountPricePlus1: p.discountPricePlus1 ? String(p.discountPricePlus1) : "",
+      discountPriceMinus1: p.discountPriceMinus1 ? String(p.discountPriceMinus1) : "",
+      underStandardPrice: p.underStandardPrice ? String(p.underStandardPrice) : "",
+      extraAdultSurcharge: p.extraAdultSurcharge ? String(p.extraAdultSurcharge) : "",
+      extraChildSurcharge: p.extraChildSurcharge ? String(p.extraChildSurcharge) : "",
+      includedAmenities: p.includedAmenities ?? "",
     });
     setPricingDialog(true);
   };
@@ -119,14 +146,25 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
           <p className="text-xs font-semibold text-teal-700 mb-1">{comboLabel(combo)}</p>
           <div className="grid grid-cols-4 gap-1 text-xs">
             {prices.sort((a, b) => (a.dayType > b.dayType ? 1 : -1)).map((p) => (
-              <div key={p.id} className="flex items-center gap-1 rounded bg-[var(--muted)]/30 px-2 py-1 group">
-                <span className="text-[var(--muted-foreground)]">{dayLabel(p.dayType)}:</span>
-                <span className="font-medium text-[var(--foreground)]">{fmtVnd(p.price)}</span>
-                {isAdmin && (
-                  <div className="ml-auto flex gap-0.5 opacity-0 group-hover:opacity-100">
-                    <button className="text-[var(--muted-foreground)] hover:text-teal-600" onClick={() => openEdit(p)}><Pencil className="h-2.5 w-2.5" /></button>
-                    <button className="text-[var(--muted-foreground)] hover:text-red-600" onClick={() => setDeleteTarget(p)}><Trash2 className="h-2.5 w-2.5" /></button>
-                  </div>
+              <div key={p.id} className="flex flex-col gap-0.5 rounded bg-[var(--muted)]/30 px-2 py-1 group">
+                <div className="flex items-center gap-1">
+                  <span className="text-[var(--muted-foreground)]">{dayLabel(p.dayType)}:</span>
+                  <span className="font-medium text-[var(--foreground)]">{fmtVnd(p.price)}</span>
+                  {isAdmin && (
+                    <div className="ml-auto flex gap-0.5 opacity-0 group-hover:opacity-100">
+                      <button className="text-[var(--muted-foreground)] hover:text-teal-600" onClick={() => openEdit(p)}><Pencil className="h-2.5 w-2.5" /></button>
+                      <button className="text-[var(--muted-foreground)] hover:text-red-600" onClick={() => setDeleteTarget(p)}><Trash2 className="h-2.5 w-2.5" /></button>
+                    </div>
+                  )}
+                </div>
+                {isAdmin && p.discountPrice != null && (
+                  <span className="text-orange-500 text-[10px]">CK: {fmtVnd(p.discountPrice)}</span>
+                )}
+                {p.extraAdultSurcharge != null && (
+                  <span className="text-[var(--muted-foreground)] text-[10px]">+NL: {fmtVnd(p.extraAdultSurcharge)}</span>
+                )}
+                {p.includedAmenities && (
+                  <span className="text-[var(--muted-foreground)] text-[10px] truncate">{p.includedAmenities}</span>
                 )}
               </div>
             ))}
@@ -136,7 +174,7 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
 
       {/* Pricing add/edit dialog */}
       <Dialog open={pricingDialog} onOpenChange={(open) => { if (!open) closePricingDialog(); }}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editPricing ? "Sửa giá" : "Thêm giá"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
@@ -152,10 +190,34 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
               </select>
             </div>
             <div className="flex flex-col gap-1"><label className="text-sm font-medium">Số người TC *</label><Input type="number" value={pForm.standardGuests} onChange={(e) => setPForm((f) => ({ ...f, standardGuests: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Giá (VND) *</label><Input type="number" value={pForm.price} onChange={(e) => setPForm((f) => ({ ...f, price: e.target.value }))} /></div>
+            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Giá niêm yết *</label><Input type="number" value={pForm.price} onChange={(e) => setPForm((f) => ({ ...f, price: e.target.value }))} /></div>
             <div className="flex flex-col gap-1"><label className="text-sm font-medium">+1 người</label><Input type="number" value={pForm.pricePlus1} onChange={(e) => setPForm((f) => ({ ...f, pricePlus1: e.target.value }))} /></div>
             <div className="flex flex-col gap-1"><label className="text-sm font-medium">-1 người</label><Input type="number" value={pForm.priceMinus1} onChange={(e) => setPForm((f) => ({ ...f, priceMinus1: e.target.value }))} /></div>
             <div className="flex flex-col gap-1"><label className="text-sm font-medium">Thêm đêm</label><Input type="number" value={pForm.extraNight} onChange={(e) => setPForm((f) => ({ ...f, extraNight: e.target.value }))} /></div>
+            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Dưới TC (giá)</label><Input type="number" value={pForm.underStandardPrice} onChange={(e) => setPForm((f) => ({ ...f, underStandardPrice: e.target.value }))} /></div>
+            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Phụ thu NL thêm</label><Input type="number" value={pForm.extraAdultSurcharge} onChange={(e) => setPForm((f) => ({ ...f, extraAdultSurcharge: e.target.value }))} /></div>
+            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Phụ thu trẻ em</label><Input type="number" value={pForm.extraChildSurcharge} onChange={(e) => setPForm((f) => ({ ...f, extraChildSurcharge: e.target.value }))} /></div>
+            <div className="col-span-2 flex flex-col gap-1">
+              <label className="text-sm font-medium">Tiện ích bao gồm</label>
+              <textarea
+                className="flex min-h-[60px] w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+                value={pForm.includedAmenities}
+                onChange={(e) => setPForm((f) => ({ ...f, includedAmenities: e.target.value }))}
+                placeholder="VD: Bữa sáng, hồ bơi, đưa đón sân bay..."
+              />
+            </div>
+
+            {/* Admin-only discount section */}
+            {isAdmin && (
+              <div className="col-span-2 border-t pt-3 mt-1">
+                <p className="text-xs font-semibold text-orange-600 mb-2">Giá chiết khấu (Admin)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1"><label className="text-sm font-medium text-orange-600">Giá CK</label><Input type="number" value={pForm.discountPrice} onChange={(e) => setPForm((f) => ({ ...f, discountPrice: e.target.value }))} /></div>
+                  <div className="flex flex-col gap-1"><label className="text-sm font-medium text-orange-600">CK +1 người</label><Input type="number" value={pForm.discountPricePlus1} onChange={(e) => setPForm((f) => ({ ...f, discountPricePlus1: e.target.value }))} /></div>
+                  <div className="flex flex-col gap-1"><label className="text-sm font-medium text-orange-600">CK -1 người</label><Input type="number" value={pForm.discountPriceMinus1} onChange={(e) => setPForm((f) => ({ ...f, discountPriceMinus1: e.target.value }))} /></div>
+                </div>
+              </div>
+            )}
           </div>
           {saveError && (
             <div className="flex items-start gap-2 rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-400">

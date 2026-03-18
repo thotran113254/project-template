@@ -30,4 +30,7 @@ export * from "./pricing-options-schema";
 export * from "./itinerary-templates-schema";
 export * from "./itinerary-template-items-schema";
 export * from "./ai-data-settings-schema";
+export * from "./ai-chat-configs-schema";
+export * from "./transport-providers-schema";
+export * from "./transport-pricing-schema";
 export * from "./market-data-relations";

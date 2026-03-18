@@ -8,6 +8,7 @@ import * as pricingConfigsService from "./pricing-configs-service.js";
 import * as aiDataSettingsService from "./ai-data-settings-service.js";
 import * as aiToggleService from "./ai-toggle-service.js";
 import * as pricingOptionsService from "./pricing-options-service.js";
+import * as transportPricingService from "./transport-pricing-service.js";
 import { invalidateAiContextCache } from "./ai-context-builder.js";
 
 // ─── Property detail (non-market-scoped) ─────────────────────────────────────
@@ -63,7 +64,8 @@ export const roomPricingRoutes = new Hono();
 roomPricingRoutes.use("*", authMiddleware);
 
 roomPricingRoutes.get("/:roomId/pricing", async (c) => {
-  const data = await propertyRoomsService.listRoomPricing(c.req.param("roomId"));
+  const user = c.get("user");
+  const data = await propertyRoomsService.listRoomPricing(c.req.param("roomId"), user.role);
   return c.json({ success: true, data });
 });
 
@@ -197,12 +199,37 @@ aiDataSettingRoutes.get("/", async (c) => {
 aiDataSettingRoutes.patch("/:category", async (c) => {
   const body = await c.req.json();
   const user = c.get("user");
-  const record = await aiDataSettingsService.toggleCategory(
+  const record = await aiDataSettingsService.updateCategory(
     c.req.param("category"),
-    body.isEnabled,
+    body,
     user.sub,
   );
   invalidateAiContextCache();
+  return c.json({ success: true, data: record });
+});
+
+// ─── AI Chat Configs (model params, prompts, behavior) ──────────────────────
+export const aiChatConfigRoutes = new Hono();
+aiChatConfigRoutes.use("*", authMiddleware, adminMiddleware);
+
+aiChatConfigRoutes.get("/", async (c) => {
+  const { listAllConfigs } = await import("../chat/ai-chat-config-service.js");
+  const data = await listAllConfigs();
+  return c.json({ success: true, data });
+});
+
+aiChatConfigRoutes.patch("/:configKey", async (c) => {
+  const body = await c.req.json();
+  const { updateConfig, invalidateConfigCache } = await import("../chat/ai-chat-config-service.js");
+  const record = await updateConfig(c.req.param("configKey"), body.configValue);
+  invalidateConfigCache();
+  return c.json({ success: true, data: record });
+});
+
+aiChatConfigRoutes.post("/reset/:configKey", async (c) => {
+  const { resetConfigToDefault, invalidateConfigCache } = await import("../chat/ai-chat-config-service.js");
+  const record = await resetConfigToDefault(c.req.param("configKey"));
+  invalidateConfigCache();
   return c.json({ success: true, data: record });
 });
 
@@ -234,6 +261,40 @@ pricingOptionRoutes.delete("/:id", adminMiddleware, async (c) => {
   await pricingOptionsService.remove(c.req.param("id"));
   invalidateAiContextCache();
   return c.json({ success: true, message: "Pricing option deleted" });
+});
+
+// ─── Transport Pricing ────────────────────────────────────────────────────────
+export const transportPricingRoutes = new Hono();
+transportPricingRoutes.use("*", authMiddleware);
+
+transportPricingRoutes.get("/:providerId/pricing", async (c) => {
+  const user = c.get("user");
+  const data = await transportPricingService.listPricingByProvider(c.req.param("providerId"), user.role);
+  return c.json({ success: true, data });
+});
+
+transportPricingRoutes.post("/:providerId/pricing", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  const record = await transportPricingService.createPricing({ ...body, providerId: c.req.param("providerId") });
+  return c.json({ success: true, data: record }, 201);
+});
+
+transportPricingRoutes.put("/:providerId/pricing", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  const items = Array.isArray(body) ? body : body.items ?? [];
+  const data = await transportPricingService.bulkUpsertPricing(c.req.param("providerId"), items);
+  return c.json({ success: true, data });
+});
+
+transportPricingRoutes.patch("/:providerId/pricing/:id", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  const record = await transportPricingService.updatePricing(c.req.param("id"), body);
+  return c.json({ success: true, data: record });
+});
+
+transportPricingRoutes.delete("/:providerId/pricing/:id", adminMiddleware, async (c) => {
+  await transportPricingService.deletePricing(c.req.param("id"));
+  return c.json({ success: true, message: "Transport pricing deleted" });
 });
 
 // ─── AI Toggle ────────────────────────────────────────────────────────────────

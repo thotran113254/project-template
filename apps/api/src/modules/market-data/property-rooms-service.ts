@@ -39,8 +39,17 @@ export async function deleteRoom(id: string) {
   await db.delete(propertyRooms).where(eq(propertyRooms.id, id));
 }
 
-export async function listRoomPricing(roomId: string) {
-  return db.select().from(roomPricing).where(eq(roomPricing.roomId, roomId));
+export async function listRoomPricing(roomId: string, userRole = "user") {
+  const rows = await db.select().from(roomPricing).where(eq(roomPricing.roomId, roomId));
+  if (userRole !== "admin") {
+    return rows.map((r) => ({
+      ...r,
+      discountPrice: null,
+      discountPricePlus1: null,
+      discountPriceMinus1: null,
+    }));
+  }
+  return rows;
 }
 
 export async function createRoomPricing(data: typeof roomPricing.$inferInsert) {

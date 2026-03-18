@@ -1,10 +1,12 @@
 import { eq, desc, asc } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { db } from "../../db/connection.js";
-import { chatSessions, chatMessages, knowledgeBase } from "../../db/schema/index.js";
+import { chatSessions, chatMessages } from "../../db/schema/index.js";
 import type { ChatSession, ChatMessage } from "@app/shared";
-import { generateChatResponse, generateChatResponseStream } from "./gemini-service.js";
-import { buildAiContext } from "../market-data/ai-context-builder.js";
+import { generateChatResponse } from "./gemini-service.js";
+import { buildCatalog } from "../market-data/ai-context-builder.js";
+
+const MAX_HISTORY_MESSAGES = 30;
 
 function toSession(row: typeof chatSessions.$inferSelect): ChatSession {
   return {
@@ -86,31 +88,6 @@ export async function getMessages(
   return rows.map(toMessage);
 }
 
-/** Fetch published KB articles as formatted string */
-async function getKbArticles(): Promise<string> {
-  const articles = await db
-    .select({ title: knowledgeBase.title, content: knowledgeBase.content, category: knowledgeBase.category })
-    .from(knowledgeBase)
-    .where(eq(knowledgeBase.status, "published"));
-
-  if (articles.length === 0) return "";
-
-  return articles
-    .map((a) => `### [${a.category.toUpperCase()}] ${a.title}\n${a.content}`)
-    .join("\n\n---\n\n");
-}
-
-/** Build full context: structured market data + KB articles */
-async function buildKbContext(): Promise<string> {
-  const [marketContext, kbArticles] = await Promise.all([
-    buildAiContext(),
-    getKbArticles(),
-  ]);
-
-  if (!kbArticles) return marketContext;
-  return `${marketContext}\n\n--- KẾT THÚC DỮ LIỆU THỊ TRƯỜNG ---\n\n${kbArticles}`;
-}
-
 export async function sendMessage(
   sessionId: string,
   userId: string,
@@ -133,20 +110,23 @@ export async function sendMessage(
     .returning();
 
   // Fetch conversation history for context
-  const historyRows = await db
+  const allHistory = await db
     .select()
     .from(chatMessages)
     .where(eq(chatMessages.sessionId, sessionId))
     .orderBy(asc(chatMessages.createdAt));
 
-  const history = historyRows.map((m) => ({
+  const allMapped = allHistory.map((m) => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
+  const history = allMapped.length > MAX_HISTORY_MESSAGES
+    ? allMapped.slice(-MAX_HISTORY_MESSAGES)
+    : allMapped;
 
-  // Build KB context and call Gemini
-  const kbContext = await buildKbContext();
-  const aiResponse = await generateChatResponse(history, kbContext);
+  // Build catalog and call Gemini
+  const catalog = await buildCatalog();
+  const aiResponse = await generateChatResponse(history, catalog);
 
   const [assistantMsg] = await db
     .insert(chatMessages)
@@ -156,7 +136,7 @@ export async function sendMessage(
   return [toMessage(userMsg!), toMessage(assistantMsg!)];
 }
 
-/** Prepare context for streaming: save user msg, build history + KB context.
+/** Prepare context for streaming: save user msg, build history + catalog.
  *  Returns data needed by the SSE route to stream the response. */
 export async function prepareStreamContext(
   sessionId: string,
@@ -165,7 +145,7 @@ export async function prepareStreamContext(
 ): Promise<{
   userMsg: ChatMessage;
   history: Array<{ role: "user" | "assistant"; content: string }>;
-  kbContext: string;
+  catalog: string;
 }> {
   const [session] = await db
     .select()
@@ -184,20 +164,23 @@ export async function prepareStreamContext(
     .returning();
 
   // Fetch conversation history
-  const historyRows = await db
+  const allHistory = await db
     .select()
     .from(chatMessages)
     .where(eq(chatMessages.sessionId, sessionId))
     .orderBy(asc(chatMessages.createdAt));
 
-  const history = historyRows.map((m) => ({
+  const allMapped = allHistory.map((m) => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
+  const history = allMapped.length > MAX_HISTORY_MESSAGES
+    ? allMapped.slice(-MAX_HISTORY_MESSAGES)
+    : allMapped;
 
-  const kbContext = await buildKbContext();
+  const catalog = await buildCatalog();
 
-  return { userMsg: toMessage(userMsg!), history, kbContext };
+  return { userMsg: toMessage(userMsg!), history, catalog };
 }
 
 /** Save complete AI response with optional token usage metadata */

@@ -15,6 +15,8 @@ import { roomPricing } from "./room-pricing-schema";
 import { pricingConfigs } from "./pricing-configs-schema";
 import { itineraryTemplates } from "./itinerary-templates-schema";
 import { itineraryTemplateItems } from "./itinerary-template-items-schema";
+import { transportProviders } from "./transport-providers-schema";
+import { transportPricing } from "./transport-pricing-schema";
 
 export const marketsRelations = relations(markets, ({ many }) => ({
   competitors: many(marketCompetitors),
@@ -28,6 +30,7 @@ export const marketsRelations = relations(markets, ({ many }) => ({
   properties: many(marketProperties),
   itineraryTemplates: many(itineraryTemplates),
   pricingConfigs: many(pricingConfigs),
+  transportProviders: many(transportProviders),
 }));
 
 export const marketCompetitorsRelations = relations(marketCompetitors, ({ one }) => ({
@@ -96,4 +99,13 @@ export const itineraryTemplatesRelations = relations(itineraryTemplates, ({ one,
 
 export const itineraryTemplateItemsRelations = relations(itineraryTemplateItems, ({ one }) => ({
   template: one(itineraryTemplates, { fields: [itineraryTemplateItems.templateId], references: [itineraryTemplates.id] }),
+}));
+
+export const transportProvidersRelations = relations(transportProviders, ({ one, many }) => ({
+  market: one(markets, { fields: [transportProviders.marketId], references: [markets.id] }),
+  pricing: many(transportPricing),
+}));
+
+export const transportPricingRelations = relations(transportPricing, ({ one }) => ({
+  provider: one(transportProviders, { fields: [transportPricing.providerId], references: [transportProviders.id] }),
 }));

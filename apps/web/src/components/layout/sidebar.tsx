@@ -9,6 +9,7 @@ import {
   Compass,
   Globe,
   Settings,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { to: "/chat", label: "Trợ lý AI", icon: MessageSquare },
   { to: "/hotels", label: "Khách sạn", icon: Hotel },
+  { to: "/combo-calculator", label: "Tính giá combo", icon: Calculator },
   { to: "/profile", label: "Hồ sơ", icon: UserCircle, section: "Cài đặt" },
   // Admin section
   { to: "/markets", label: "Thị trường", icon: Globe, adminOnly: true, section: "Quản trị" },

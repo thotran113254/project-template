@@ -1,34 +1,54 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { ChatMessage } from "@app/shared";
 
+export interface ToolCallInfo {
+  toolName: string;
+  args: Record<string, unknown>;
+  usedSkill: boolean;
+}
+
 const ACCESS_TOKEN_KEY = "access_token";
 
 /** Interval (ms) between UI flushes — 50ms = 20fps, smooth enough without excessive re-renders */
 const FLUSH_INTERVAL_MS = 50;
 
+interface TokenBreakdown {
+  promptTokens: number;
+  responseTokens: number;
+  thinkingTokens: number;
+  cachedTokens: number;
+  totalTokens: number;
+}
+
+interface CostBreakdown {
+  inputCost: number;
+  cachedCost: number;
+  outputCost: number;
+  thinkingCost: number;
+  totalCost: number;
+}
+
+export interface ModelUsageInfo {
+  model: string;
+  tokens: TokenBreakdown;
+  cost: CostBreakdown;
+}
+
+export interface CostBreakdownInfo {
+  main: ModelUsageInfo;
+  cheap: ModelUsageInfo;
+  toolRounds: number;
+  totalCost: number;
+}
+
 export interface TokenUsageInfo {
-  tokenUsage: {
-    promptTokens: number;
-    responseTokens: number;
-    thinkingTokens: number;
-    cachedTokens: number;
-    totalTokens: number;
-  };
-  estimatedCost: {
-    inputCost: number;
-    cachedCost: number;
-    outputCost: number;
-    thinkingCost: number;
-    totalCost: number;
-  };
+  costBreakdown: CostBreakdownInfo;
   /** Conversation turn number (1-based) */
   turn?: number;
   /** Processing duration in ms */
   durationMs?: number;
   /** Whether thinking mode was used */
   hasThinking?: boolean;
-  /** Whether context caching was used */
-  hasCachedContext?: boolean;
 }
 
 interface UseChatStreamOptions {
@@ -47,6 +67,8 @@ interface UseChatStreamReturn {
   lastUsage: TokenUsageInfo | null;
   /** Optimistic user message shown immediately while waiting for SSE */
   pendingUserMessage: ChatMessage | null;
+  /** Tool calls fired during the current streaming response */
+  toolCalls: ToolCallInfo[];
 }
 
 /**
@@ -60,6 +82,7 @@ export function useChatStream({ onComplete, onError }: UseChatStreamOptions = {}
   const [error, setError] = useState<string | null>(null);
   const [lastUsage, setLastUsage] = useState<TokenUsageInfo | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<ChatMessage | null>(null);
+  const [toolCalls, setToolCalls] = useState<ToolCallInfo[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   // Buffer: raw accumulated text that hasn't been flushed to state yet
@@ -109,6 +132,7 @@ export function useChatStream({ onComplete, onError }: UseChatStreamOptions = {}
     setStreamingText("");
     setIsStreaming(true);
     setError(null);
+    setToolCalls([]);
 
     // Show user message immediately (optimistic)
     setPendingUserMessage({
@@ -171,13 +195,17 @@ export function useChatStream({ onComplete, onError }: UseChatStreamOptions = {}
                 } else if (currentEvent === "ai-chunk") {
                   // Accumulate in ref — UI will pick it up on next flush tick
                   accumulatedRef.current += data.text;
+                } else if (currentEvent === "tool-call") {
+                  const toolData = data as ToolCallInfo;
+                  setToolCalls((prev) => [...prev, toolData]);
                 } else if (currentEvent === "ai-complete") {
                   // Final flush before completing
                   flushRemaining();
-                  const { tokenUsage, estimatedCost, turn, durationMs, hasThinking, hasCachedContext, ...msgData } = data;
+                  setToolCalls([]);
+                  const { costBreakdown, turn, durationMs, hasThinking, ...msgData } = data;
                   const assistantMsg = msgData as ChatMessage;
-                  const usage = tokenUsage && estimatedCost
-                    ? { tokenUsage, estimatedCost, turn, durationMs, hasThinking, hasCachedContext } as TokenUsageInfo
+                  const usage = costBreakdown
+                    ? { costBreakdown, turn, durationMs, hasThinking } as TokenUsageInfo
                     : undefined;
                   if (usage) setLastUsage(usage);
                   setPendingUserMessage(null);
@@ -210,5 +238,5 @@ export function useChatStream({ onComplete, onError }: UseChatStreamOptions = {}
       });
   }, [onComplete, onError]);
 
-  return { send, streamingText, isStreaming, error, lastUsage, pendingUserMessage };
+  return { send, streamingText, isStreaming, error, lastUsage, pendingUserMessage, toolCalls };
 }

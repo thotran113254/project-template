@@ -11,6 +11,7 @@ import { dashboardRoutes } from "../modules/dashboard/dashboard-routes.js";
 import { itineraryRoutes } from "../modules/itinerary/itinerary-routes.js";
 import { marketDataRoutes } from "../modules/market-data/market-data-routes.js";
 import { uploadRoutes } from "../modules/upload/upload-routes.js";
+import { comboCalculatorRoutes } from "../modules/pricing/combo-calculator-routes.js";
 import {
   propertyDetailRoutes,
   propertyRoomRoutes,
@@ -19,8 +20,10 @@ import {
   itineraryItemRoutes,
   pricingConfigRoutes,
   aiDataSettingRoutes,
+  aiChatConfigRoutes,
   aiToggleRoutes,
   pricingOptionRoutes,
+  transportPricingRoutes,
 } from "../modules/market-data/market-data-extra-routes.js";
 
 const routes = new Hono();
@@ -83,11 +86,20 @@ routes.route("/pricing-configs", pricingConfigRoutes);
 // AI data settings: /ai-data-settings
 routes.route("/ai-data-settings", aiDataSettingRoutes);
 
+// AI chat configs (model params, prompts): /ai-chat-configs
+routes.route("/ai-chat-configs", aiChatConfigRoutes);
+
 // AI visibility toggle: /ai-toggle/:entityType/:entityId
 routes.route("/ai-toggle", aiToggleRoutes);
 
 // Pricing options (combo types, day types): /pricing-options
 routes.route("/pricing-options", pricingOptionRoutes);
+
+// Transport pricing: /transport-providers/:providerId/pricing
+routes.route("/transport-providers", transportPricingRoutes);
+
+// Combo calculator: /combo-calculator/calculate
+routes.route("/combo-calculator", comboCalculatorRoutes);
 
 // File upload: /upload
 routes.route("/upload", uploadRoutes);

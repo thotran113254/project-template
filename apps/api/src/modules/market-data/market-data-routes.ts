@@ -15,6 +15,7 @@ import * as itineraryService from "./itinerary-service.js";
 import * as pricingConfigsService from "./pricing-configs-service.js";
 import * as aiDataSettingsService from "./ai-data-settings-service.js";
 import * as aiToggleService from "./ai-toggle-service.js";
+import * as transportProviderService from "./transport-provider-service.js";
 
 export const marketDataRoutes = new Hono();
 
@@ -248,6 +249,31 @@ marketDataRoutes.patch("/:marketId/properties/:id", adminMiddleware, async (c) =
 marketDataRoutes.delete("/:marketId/properties/:id", adminMiddleware, async (c) => {
   await propertiesService.deleteProperty(c.req.param("id"));
   return c.json({ success: true, message: "Property deleted" });
+});
+
+// ─── Transport Providers ──────────────────────────────────────────────────────
+
+marketDataRoutes.get("/:marketId/transport-providers", async (c) => {
+  const category = c.req.query("category") as "bus" | "ferry" | undefined;
+  const data = await transportProviderService.listProviders(c.req.param("marketId"), category);
+  return c.json({ success: true, data });
+});
+
+marketDataRoutes.post("/:marketId/transport-providers", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  const record = await transportProviderService.createProvider({ ...body, marketId: c.req.param("marketId") });
+  return c.json({ success: true, data: record }, 201);
+});
+
+marketDataRoutes.patch("/:marketId/transport-providers/:id", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  const record = await transportProviderService.updateProvider(c.req.param("id"), body);
+  return c.json({ success: true, data: record });
+});
+
+marketDataRoutes.delete("/:marketId/transport-providers/:id", adminMiddleware, async (c) => {
+  await transportProviderService.deleteProvider(c.req.param("id"));
+  return c.json({ success: true, message: "Transport provider deleted" });
 });
 
 // ─── Itinerary Templates ──────────────────────────────────────────────────────

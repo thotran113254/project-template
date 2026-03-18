@@ -10,3 +10,4 @@ export * from "./pricing-types";
 export * from "./itinerary-types";
 export * from "./market-types";
 export * from "./market-property-types";
+export * from "./combo-calculator-types";

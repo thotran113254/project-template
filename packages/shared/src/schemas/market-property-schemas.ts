@@ -40,12 +40,56 @@ export const createRoomPricingSchema = z.object({
   seasonEnd: z.string().optional(),
   standardGuests: z.number().int().min(1),
   price: z.number().int().min(0),
+  discountPrice: z.number().int().min(0).optional(),
   pricePlus1: z.number().int().min(0).optional(),
   priceMinus1: z.number().int().min(0).optional(),
+  discountPricePlus1: z.number().int().min(0).optional(),
+  discountPriceMinus1: z.number().int().min(0).optional(),
+  underStandardPrice: z.number().int().min(0).optional(),
+  extraAdultSurcharge: z.number().int().min(0).optional(),
+  extraChildSurcharge: z.number().int().min(0).optional(),
   extraNight: z.number().int().min(0).optional(),
+  includedAmenities: z.string().optional(),
   notes: z.string().optional(),
   aiVisible: z.boolean().optional(),
 });
+
+export const createTransportProviderSchema = z.object({
+  providerName: z.string().min(1).max(255),
+  providerCode: z.string().max(50).optional(),
+  transportCategory: z.enum(["bus", "ferry"]),
+  routeName: z.string().min(1).max(255),
+  contactInfo: z.record(z.unknown()).optional(),
+  pickupPoints: z.array(z.object({ name: z.string(), time: z.string() })).optional(),
+  notes: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  aiVisible: z.boolean().optional(),
+});
+
+export const updateTransportProviderSchema = createTransportProviderSchema.partial();
+
+export const createTransportPricingSchema = z.object({
+  vehicleClass: z.string().min(1).max(50),
+  seatType: z.string().min(1).max(50),
+  capacityPerUnit: z.number().int().min(1).default(1),
+  onewayListedPrice: z.number().int().min(0),
+  onewayDiscountPrice: z.number().int().min(0).optional(),
+  roundtripListedPrice: z.number().int().min(0).optional(),
+  roundtripDiscountPrice: z.number().int().min(0).optional(),
+  childFreeUnder: z.number().int().min(0).optional(),
+  childDiscountUnder: z.number().int().min(0).optional(),
+  childDiscountAmount: z.number().int().min(0).optional(),
+  onboardServices: z.string().optional(),
+  crossProvinceSurcharges: z.array(z.object({
+    province: z.string(),
+    surcharge: z.number().int().min(0),
+  })).optional(),
+  notes: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  aiVisible: z.boolean().optional(),
+});
+
+export const updateTransportPricingSchema = createTransportPricingSchema.partial();
 
 export const createEvaluationCriteriaSchema = z.object({
   marketId: z.string().uuid().optional(),
@@ -114,8 +158,26 @@ export const createPricingOptionSchema = z.object({
 export const updatePricingOptionSchema = createPricingOptionSchema.partial().omit({ category: true, optionKey: true });
 
 export const updateAiDataSettingSchema = z.object({
-  isEnabled: z.boolean(),
+  isEnabled: z.boolean().optional(),
+  creativityLevel: z.enum(["strict", "enhanced", "creative"]).optional(),
   description: z.string().optional(),
+});
+
+export const updateAiChatConfigSchema = z.object({
+  configValue: z.string(),
+});
+
+export const comboCalculateSchema = z.object({
+  marketSlug: z.string().min(1),
+  propertySlug: z.string().optional(),
+  numAdults: z.number().int().min(1),
+  numChildrenUnder10: z.number().int().min(0).default(0),
+  numChildrenUnder5: z.number().int().min(0).default(0),
+  numNights: z.number().int().min(1).max(30),
+  dayType: z.enum(["weekday", "friday", "saturday", "sunday", "holiday"]),
+  transportClass: z.enum(["cabin", "limousine", "sleeper"]).optional(),
+  ferryClass: z.enum(["speed_boat", "small_boat"]).optional(),
+  profitMarginOverride: z.number().min(0).max(100).optional(),
 });
 
 export const aiToggleSchema = z.object({
@@ -123,7 +185,7 @@ export const aiToggleSchema = z.object({
     "market", "competitor", "customer_journey", "target_customer",
     "attraction", "dining_spot", "transportation", "inventory_strategy",
     "property", "property_evaluation", "room", "room_pricing", "pricing_config",
-    "itinerary_template",
+    "itinerary_template", "transport_provider", "transport_pricing",
   ]),
   entityId: z.string().uuid(),
 });

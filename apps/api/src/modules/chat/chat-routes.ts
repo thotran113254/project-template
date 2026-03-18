@@ -3,30 +3,50 @@ import { streamSSE } from "hono/streaming";
 import { createChatSessionSchema, sendMessageSchema } from "@app/shared";
 import { authMiddleware } from "../../middleware/auth-middleware.js";
 import * as chatService from "./chat-service.js";
-import { generateChatResponseStream, type TokenUsage } from "./gemini-service.js";
+import { generateChatResponseStream, type AggregatedUsage, type ToolCallEvent } from "./gemini-service.js";
+import type { TokenUsage } from "./gemini-utils.js";
 
 /**
- * Gemini 3 Flash Preview pricing (USD per 1M tokens)
+ * Model pricing (USD per 1M tokens)
  * Source: https://ai.google.dev/pricing (paid tier, March 2026)
- * - Cached input tokens are discounted (typically 50% off)
- * - Thinking tokens billed at output rate
  */
-const PRICING = {
-  inputPerMillion: 0.50,
-  outputPerMillion: 3.00,
-  cachedInputPerMillion: 0.25,
-  thinkingPerMillion: 3.00,
+const MODEL_PRICING = {
+  "gemini-3-flash-preview": {
+    inputPerMillion: 0.50,
+    outputPerMillion: 3.00,
+    cachedInputPerMillion: 0.25,
+    thinkingPerMillion: 3.00,
+  },
+  "gemini-2.5-flash-lite": {
+    inputPerMillion: 0.025,
+    outputPerMillion: 0.15,
+    cachedInputPerMillion: 0.0125,
+    thinkingPerMillion: 0.00, // no thinking mode
+  },
 } as const;
 
-function estimateCost(usage: TokenUsage) {
-  // Non-cached input tokens = prompt - cached
+type ModelId = keyof typeof MODEL_PRICING;
+
+function estimateModelCost(usage: TokenUsage, model: ModelId) {
+  const p = MODEL_PRICING[model];
   const regularInput = Math.max(0, usage.promptTokens - usage.cachedTokens);
-  const inputCost = (regularInput / 1_000_000) * PRICING.inputPerMillion;
-  const cachedCost = (usage.cachedTokens / 1_000_000) * PRICING.cachedInputPerMillion;
-  const outputCost = (usage.responseTokens / 1_000_000) * PRICING.outputPerMillion;
-  const thinkingCost = (usage.thinkingTokens / 1_000_000) * PRICING.thinkingPerMillion;
+  const inputCost = (regularInput / 1_000_000) * p.inputPerMillion;
+  const cachedCost = (usage.cachedTokens / 1_000_000) * p.cachedInputPerMillion;
+  const outputCost = (usage.responseTokens / 1_000_000) * p.outputPerMillion;
+  const thinkingCost = (usage.thinkingTokens / 1_000_000) * p.thinkingPerMillion;
   const totalCost = inputCost + cachedCost + outputCost + thinkingCost;
   return { inputCost, cachedCost, outputCost, thinkingCost, totalCost };
+}
+
+function buildCostBreakdown(agg: AggregatedUsage) {
+  const mainCost = estimateModelCost(agg.main, "gemini-3-flash-preview");
+  const cheapCost = estimateModelCost(agg.cheap, "gemini-2.5-flash-lite");
+  return {
+    main: { model: "gemini-3-flash-preview", tokens: agg.main, cost: mainCost },
+    cheap: { model: "gemini-2.5-flash-lite", tokens: agg.cheap, cost: cheapCost },
+    toolRounds: agg.toolRounds,
+    totalCost: mainCost.totalCost + cheapCost.totalCost,
+  };
 }
 
 export const chatRoutes = new Hono();
@@ -78,8 +98,8 @@ chatRoutes.post("/sessions/:id/messages/stream", async (c) => {
   const body = await c.req.json();
   const dto = sendMessageSchema.parse(body);
 
-  // Prepare context: save user msg, fetch history + KB
-  const { userMsg, history, kbContext } = await chatService.prepareStreamContext(
+  // Prepare context: save user msg, fetch history + catalog
+  const { userMsg, history, catalog } = await chatService.prepareStreamContext(
     c.req.param("id"),
     user.sub,
     dto.content,
@@ -97,13 +117,24 @@ chatRoutes.post("/sessions/:id/messages/stream", async (c) => {
 
     // Stream AI response with turn tracking + token usage
     let fullContent = "";
-    let tokenUsage: TokenUsage | null = null;
+    let aggregatedUsage: AggregatedUsage | null = null;
     const startTime = Date.now();
-    // Turn = number of conversation messages before this one (user+assistant pairs)
     const turnNumber = Math.ceil(history.length / 2);
 
+    const onToolCall = async (event: ToolCallEvent) => {
+      await stream.writeSSE({
+        data: JSON.stringify({
+          toolName: event.toolName,
+          args: event.args,
+          usedSkill: event.usedSkill,
+        }),
+        event: "tool-call",
+        id: String(chunkId++),
+      });
+    };
+
     try {
-      const gen = generateChatResponseStream(history, kbContext, (u) => { tokenUsage = u; });
+      const gen = generateChatResponseStream(history, catalog, onToolCall, (u: AggregatedUsage) => { aggregatedUsage = u; });
       for await (const text of gen) {
         fullContent += text;
         await stream.writeSSE({
@@ -114,20 +145,18 @@ chatRoutes.post("/sessions/:id/messages/stream", async (c) => {
       }
 
       const durationMs = Date.now() - startTime;
+      const agg = aggregatedUsage as AggregatedUsage | null;
+      const costBreakdown = agg ? buildCostBreakdown(agg) : null;
 
       // Build metadata with full processing details
       const usageMeta: Record<string, unknown> = {
-        model: "gemini-3-flash-preview",
         turn: turnNumber,
         durationMs,
         historyMessages: history.length,
-        hasThinking: (tokenUsage as TokenUsage | null)?.thinkingTokens ? true : false,
-        hasCachedContext: (tokenUsage as TokenUsage | null)?.cachedTokens ? true : false,
+        hasThinking: !!agg?.main.thinkingTokens,
       };
-      const finalUsage = tokenUsage as TokenUsage | null;
-      if (finalUsage) {
-        usageMeta.tokenUsage = finalUsage;
-        usageMeta.estimatedCost = estimateCost(finalUsage);
+      if (costBreakdown) {
+        usageMeta.costBreakdown = costBreakdown;
       }
 
       // Save complete response to DB with metadata
@@ -141,18 +170,17 @@ chatRoutes.post("/sessions/:id/messages/stream", async (c) => {
       await stream.writeSSE({
         data: JSON.stringify({
           ...assistantMsg,
-          tokenUsage: finalUsage,
-          estimatedCost: finalUsage ? estimateCost(finalUsage) : null,
+          costBreakdown,
           turn: turnNumber,
           durationMs,
-          hasThinking: !!finalUsage?.thinkingTokens,
-          hasCachedContext: !!finalUsage?.cachedTokens,
+          hasThinking: !!agg?.main.thinkingTokens,
         }),
         event: "ai-complete",
         id: String(chunkId++),
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "AI generation failed";
+      console.error("[chat-stream] Gemini error:", err);
       await stream.writeSSE({
         data: JSON.stringify({ error: message }),
         event: "error",

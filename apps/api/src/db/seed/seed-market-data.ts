@@ -19,6 +19,9 @@ import {
   pricingConfigs,
   pricingOptions,
   aiDataSettings,
+  aiChatConfigs,
+  transportProviders,
+  transportPricing,
 } from "../schema/index.js";
 
 import { marketsData } from "./data/markets-seed-data.js";
@@ -35,6 +38,10 @@ import { itineraryTemplatesData } from "./data/itinerary-templates-seed-data.js"
 import { pricingConfigsData } from "./data/pricing-configs-seed-data.js";
 import { pricingOptionsSeedData } from "./data/pricing-options-seed-data.js";
 import { aiSettingsData } from "./data/ai-settings-seed-data.js";
+import { aiChatConfigsData } from "./data/ai-chat-configs-seed-data.js";
+import { transportProvidersSeedData } from "./data/transport-providers-seed-data.js";
+import { transportPricingSeedData } from "./data/transport-pricing-seed-data.js";
+import { diningPricingConfigsSeedData } from "./data/dining-pricing-configs-seed-data.js";
 
 // Room pricing combos and day types
 const COMBO_TYPES = ["3n2d", "2n1d", "per_night"] as const;
@@ -47,11 +54,28 @@ const PRICE_MATRIX: Record<string, Record<string, number>> = {
 };
 
 const ROOM_PREMIUM: Record<string, number> = {
+  // phu-quy
   "BX-DLX": 1.3, "BX-FAM": 1.2,
   "HB-STD": 0.85, "HB-TRP": 0.9,
   "CE-DLX": 1.5, "CE-STD": 1.1,
+  // cat-ba
   "LH-STD": 1.0, "LH-FAM": 1.25,
   "SB-SUP": 1.2, "SB-DLX": 1.5,
+  // da-nang
+  "MK-STE": 1.8, "MK-DLX": 1.4, "MK-FAM": 1.5,
+  "ST-DBL": 1.0, "ST-BGL": 1.1,
+  "HR-SUP": 1.2, "HR-PRM": 1.35,
+  // phu-quoc
+  "SB-VIL": 1.75, "SB-BGL": 1.4,
+  "SF-DBL": 0.95, "SF-TRP": 1.05,
+  "PI-DLX": 1.25, "PI-PRM": 1.35,
+  // sa-pa
+  "VV-CBN": 1.2, "VV-FAM": 1.3,
+  "HM-TRD": 0.85, "HM-LFT": 0.9,
+  // nha-trang
+  "TP-STE": 1.7, "TP-SUP": 1.2,
+  "VH-DLX": 1.3, "VH-CTG": 1.45,
+  "BN-DBL": 0.75, "BN-DRM": 0.4,
 };
 
 /** Helper: count rows in a table */
@@ -166,6 +190,131 @@ const evalValues: Record<string, Record<string, string>> = {
     "Cho thuê xe máy/xe đạp": "Tour desk hỗ trợ", "Hỗ trợ đặt tour": "Đầy đủ",
     "Check-in/Check-out linh hoạt": "24h reception", "View biển/vịnh": "Ban công vịnh (DLX)",
     "View từ sân thượng/ban công": "View vịnh (DLX)",
+  },
+  // da-nang
+  "my-khe-beach-resort": {
+    "Khoảng cách đến biển": "Mặt biển trực tiếp", "Khoảng cách đến trung tâm": "3km",
+    "Khoảng cách đến cảng/bến tàu": "N/A (thành phố)", "Diện tích phòng": "32–50m²",
+    "View từ phòng": "Biển trực tiếp (STE/DLX)", "Loại giường": "King/Twin",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "50Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có (bồn tắm STE)",
+    "Vệ sinh sạch sẽ": "Rất tốt", "Bữa sáng": "Buffet bao gồm",
+    "Cho thuê xe máy/xe đạp": "Tour desk hỗ trợ", "Hỗ trợ đặt tour": "Đầy đủ",
+    "Check-in/Check-out linh hoạt": "24h reception", "View biển/vịnh": "Hồ bơi vô cực + biển",
+    "View từ sân thượng/ban công": "Ban công biển trực tiếp",
+  },
+  "son-tra-homestay": {
+    "Khoảng cách đến biển": "2km", "Khoảng cách đến trung tâm": "4km",
+    "Khoảng cách đến cảng/bến tàu": "N/A (thành phố)", "Diện tích phòng": "25–30m²",
+    "View từ phòng": "Núi Sơn Trà / Vườn", "Loại giường": "Queen/Đôi+Đơn",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "20Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có",
+    "Vệ sinh sạch sẽ": "Tốt", "Bữa sáng": "Tùy chọn (+50k)",
+    "Cho thuê xe máy/xe đạp": "Có (120k/ngày)", "Hỗ trợ đặt tour": "Có (Sơn Trà)",
+    "Check-in/Check-out linh hoạt": "Linh hoạt", "View biển/vịnh": "Không trực tiếp",
+    "View từ sân thượng/ban công": "Núi Sơn Trà xanh mát",
+  },
+  "han-river-boutique": {
+    "Khoảng cách đến biển": "1.5km", "Khoảng cách đến trung tâm": "Trung tâm",
+    "Khoảng cách đến cảng/bến tàu": "N/A (thành phố)", "Diện tích phòng": "28–35m²",
+    "View từ phòng": "Sông Hàn + Cầu Rồng", "Loại giường": "Queen/King",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "40Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có (bathtub PRM)",
+    "Vệ sinh sạch sẽ": "Rất tốt", "Bữa sáng": "Bao gồm",
+    "Cho thuê xe máy/xe đạp": "Tour desk hỗ trợ", "Hỗ trợ đặt tour": "Đầy đủ",
+    "Check-in/Check-out linh hoạt": "24h reception", "View biển/vịnh": "Rooftop bar",
+    "View từ sân thượng/ban công": "Sông Hàn và Cầu Rồng",
+  },
+  // phu-quoc
+  "sunset-beach-villa-pq": {
+    "Khoảng cách đến biển": "Mặt biển trực tiếp", "Khoảng cách đến trung tâm": "2km",
+    "Khoảng cách đến cảng/bến tàu": "5km (cảng An Thới)", "Diện tích phòng": "35–45m²",
+    "View từ phòng": "Biển trực tiếp (VIL) / Vườn (BGL)", "Loại giường": "King",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "50Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có (bathtub VIL)",
+    "Vệ sinh sạch sẽ": "Rất tốt", "Bữa sáng": "Bao gồm",
+    "Cho thuê xe máy/xe đạp": "Hỗ trợ đặt tour", "Hỗ trợ đặt tour": "Đầy đủ",
+    "Check-in/Check-out linh hoạt": "Linh hoạt (đặt trước)", "View biển/vịnh": "Hồ bơi riêng + biển",
+    "View từ sân thượng/ban công": "Hoàng hôn Long Beach",
+  },
+  "starfish-homestay-pq": {
+    "Khoảng cách đến biển": "10 phút đi bộ", "Khoảng cách đến trung tâm": "Trung tâm Dương Đông",
+    "Khoảng cách đến cảng/bến tàu": "3km (cảng Dương Đông)", "Diện tích phòng": "22–28m²",
+    "View từ phòng": "Đường phố / Vườn", "Loại giường": "Queen/Đôi+Đơn",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "20Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có",
+    "Vệ sinh sạch sẽ": "Tốt", "Bữa sáng": "Không (quán ăn gần đó)",
+    "Cho thuê xe máy/xe đạp": "Có (130k/ngày)", "Hỗ trợ đặt tour": "Có (tour đảo)",
+    "Check-in/Check-out linh hoạt": "Linh hoạt", "View biển/vịnh": "Không trực tiếp",
+    "View từ sân thượng/ban công": "Chợ đêm Dinh Cậu",
+  },
+  "pearl-island-hotel-pq": {
+    "Khoảng cách đến biển": "500m", "Khoảng cách đến trung tâm": "25km (Dương Đông)",
+    "Khoảng cách đến cảng/bến tàu": "1km (cảng An Thới)", "Diện tích phòng": "30–35m²",
+    "View từ phòng": "Hồ bơi / Biển và cảng (PRM)", "Loại giường": "King",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "30Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có (bathtub PRM)",
+    "Vệ sinh sạch sẽ": "Rất tốt", "Bữa sáng": "Bao gồm",
+    "Cho thuê xe máy/xe đạp": "Tour desk", "Hỗ trợ đặt tour": "Đầy đủ (lặn biển)",
+    "Check-in/Check-out linh hoạt": "24h reception", "View biển/vịnh": "Ban công biển (PRM)",
+    "View từ sân thượng/ban công": "Quần đảo An Thới",
+  },
+  // sa-pa
+  "valley-view-eco-lodge": {
+    "Khoảng cách đến biển": "N/A (vùng núi)", "Khoảng cách đến trung tâm": "8km",
+    "Khoảng cách đến cảng/bến tàu": "N/A (vùng núi)", "Diện tích phòng": "28–40m²",
+    "View từ phòng": "Ruộng bậc thang trực tiếp", "Loại giường": "Queen/Đôi",
+    "Điều hòa nhiệt độ": "Lò sưởi + quạt", "Wifi tốc độ": "15Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có",
+    "Vệ sinh sạch sẽ": "Rất tốt", "Bữa sáng": "Bao gồm",
+    "Cho thuê xe máy/xe đạp": "Xe ôm hỗ trợ", "Hỗ trợ đặt tour": "Trekking guide",
+    "Check-in/Check-out linh hoạt": "Linh hoạt", "View biển/vịnh": "N/A",
+    "View từ sân thượng/ban công": "Panoramic thung lũng Mường Hoa",
+  },
+  "hmong-village-homestay": {
+    "Khoảng cách đến biển": "N/A (vùng núi)", "Khoảng cách đến trung tâm": "12km",
+    "Khoảng cách đến cảng/bến tàu": "N/A (vùng núi)", "Diện tích phòng": "20–25m²",
+    "View từ phòng": "Vườn bản / Núi", "Loại giường": "Đôi/Đơn",
+    "Điều hòa nhiệt độ": "Sưởi truyền thống", "Wifi tốc độ": "5Mbps (hạn chế)",
+    "WC riêng hay chung": "Chung (ngoài trời)", "Nước nóng lạnh": "Có (thùng nhiệt)",
+    "Vệ sinh sạch sẽ": "Khá (truyền thống)", "Bữa sáng": "Bao gồm (nấu truyền thống)",
+    "Cho thuê xe máy/xe đạp": "Đi bộ / xe ôm", "Hỗ trợ đặt tour": "Trekking bản làng",
+    "Check-in/Check-out linh hoạt": "Linh hoạt", "View biển/vịnh": "N/A",
+    "View từ sân thượng/ban công": "Bản làng và ruộng bậc thang",
+  },
+  // nha-trang
+  "tran-phu-beachfront": {
+    "Khoảng cách đến biển": "Mặt biển trực tiếp", "Khoảng cách đến trung tâm": "Trung tâm",
+    "Khoảng cách đến cảng/bến tàu": "10 phút đi bộ", "Diện tích phòng": "28–38m²",
+    "View từ phòng": "Biển trực tiếp (STE) / Thành phố (SUP)", "Loại giường": "King/Queen-Twin",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "50Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có (bathtub STE)",
+    "Vệ sinh sạch sẽ": "Rất tốt", "Bữa sáng": "Buffet bao gồm",
+    "Cho thuê xe máy/xe đạp": "Tour desk hỗ trợ", "Hỗ trợ đặt tour": "Đầy đủ (tour đảo)",
+    "Check-in/Check-out linh hoạt": "24h reception", "View biển/vịnh": "Rooftop pool + biển",
+    "View từ sân thượng/ban công": "Ban công biển trực tiếp (STE)",
+  },
+  "vinh-hai-bay-resort": {
+    "Khoảng cách đến biển": "Bãi biển riêng", "Khoảng cách đến trung tâm": "8km",
+    "Khoảng cách đến cảng/bến tàu": "12km", "Diện tích phòng": "32–45m²",
+    "View từ phòng": "Vịnh Vĩnh Hải", "Loại giường": "King/Đôi",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "25Mbps",
+    "WC riêng hay chung": "Riêng", "Nước nóng lạnh": "Có",
+    "Vệ sinh sạch sẽ": "Rất tốt", "Bữa sáng": "Tùy chọn (+80k)",
+    "Cho thuê xe máy/xe đạp": "Có (140k/ngày)", "Hỗ trợ đặt tour": "Kayak, snorkeling",
+    "Check-in/Check-out linh hoạt": "Linh hoạt", "View biển/vịnh": "Bãi biển riêng tư",
+    "View từ sân thượng/ban công": "Toàn cảnh vịnh Vĩnh Hải",
+  },
+  "backpackers-nest-nt": {
+    "Khoảng cách đến biển": "5 phút đi bộ", "Khoảng cách đến trung tâm": "Trung tâm backpacker",
+    "Khoảng cách đến cảng/bến tàu": "15 phút đi bộ", "Diện tích phòng": "8–18m²",
+    "View từ phòng": "Đường phố / Không", "Loại giường": "Queen (DBL) / Tầng (DRM)",
+    "Điều hòa nhiệt độ": "Có", "Wifi tốc độ": "30Mbps",
+    "WC riêng hay chung": "Riêng (DBL) / Chung (DRM)", "Nước nóng lạnh": "Có",
+    "Vệ sinh sạch sẽ": "Khá", "Bữa sáng": "Không",
+    "Cho thuê xe máy/xe đạp": "Có (100k/ngày)", "Hỗ trợ đặt tour": "Tour đảo giá rẻ",
+    "Check-in/Check-out linh hoạt": "Tiêu chuẩn", "View biển/vịnh": "Không trực tiếp",
+    "View từ sân thượng/ban công": "Rooftop bar",
   },
 };
 
@@ -306,6 +455,66 @@ async function seedAiSettings() {
   console.log(`  Inserted ${aiSettingsData.length} AI data settings`);
 }
 
+// ─── AI chat configs: skip if already exist ─────────────────────────────────
+async function seedAiChatConfigs() {
+  const existing = await countRows(aiChatConfigs);
+  if (existing > 0) { console.log(`  AI chat configs: ${existing} already exist, skipped`); return; }
+  await db.insert(aiChatConfigs).values(aiChatConfigsData);
+  console.log(`  Inserted ${aiChatConfigsData.length} AI chat configs`);
+}
+
+// ─── Transport providers + pricing ───────────────────────────────────────────
+async function seedTransportProviders(marketIds: Record<string, string>) {
+  let providerInserted = 0, pricingInserted = 0, skipped = 0;
+
+  for (const [slug, providers] of Object.entries(transportProvidersSeedData)) {
+    const marketId = marketIds[slug];
+    if (!marketId) continue;
+
+    for (const provider of providers) {
+      const [existing] = await db.select({ id: transportProviders.id })
+        .from(transportProviders)
+        .where(and(
+          eq(transportProviders.marketId, marketId),
+          eq(transportProviders.providerCode, provider.providerCode),
+        ))
+        .limit(1);
+
+      if (existing) { skipped++; continue; }
+
+      const [inserted] = await db.insert(transportProviders)
+        .values({ ...provider, marketId })
+        .returning();
+      if (!inserted) continue;
+      providerInserted++;
+
+      const pricingRows = transportPricingSeedData[provider.providerCode];
+      if (pricingRows && pricingRows.length > 0) {
+        await db.insert(transportPricing)
+          .values(pricingRows.map((p) => ({ ...p, providerId: inserted.id })));
+        pricingInserted += pricingRows.length;
+      }
+    }
+  }
+  console.log(`  Transport providers: ${providerInserted} new, ${skipped} skipped, ${pricingInserted} pricing rows`);
+}
+
+// ─── Dining pricing configs: skip if dining_service configs already exist ─────
+async function seedDiningPricingConfigs() {
+  const existing = await db.select({ id: pricingConfigs.id })
+    .from(pricingConfigs)
+    .where(eq(pricingConfigs.ruleType, "dining_service"))
+    .limit(1);
+  if (existing.length > 0) {
+    console.log(`  Dining pricing configs: already exist, skipped`);
+    return;
+  }
+  await db.insert(pricingConfigs).values(
+    diningPricingConfigsSeedData.map((d, i) => ({ ...d, sortOrder: i + 1 })),
+  );
+  console.log(`  Inserted ${diningPricingConfigsSeedData.length} dining pricing configs`);
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 async function main() {
   console.log("Seeding market data (safe mode — preserves existing data)...");
@@ -324,6 +533,9 @@ async function main() {
     await seedPricingConfigs();
     await seedPricingOptions();
     await seedAiSettings();
+    await seedAiChatConfigs();
+    await seedTransportProviders(marketIds);
+    await seedDiningPricingConfigs();
     console.log("Seed completed! Existing data preserved.");
   } catch (err) {
     console.error("Seed failed:", err);

@@ -1,247 +1,212 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import type { Content, Part } from "@google/genai";
 import { env } from "../../env.js";
+import { GEMINI_TOOLS } from "./gemini-tool-definitions.js";
+import { executeToolCall } from "./gemini-tool-handlers.js";
+import { getSkillForToolAsync } from "./skills/index.js";
+import { needsProcessing, processWithSkill } from "./gemini-cheap-model.js";
+import { getModelConfig } from "./ai-chat-config-service.js";
+import { buildSystemPromptFromDb } from "./gemini-utils.js";
+import {
+  extractUsage, extractResponseUsage,
+  emptyUsage, addUsage,
+  type TokenUsage, type AggregatedUsage,
+} from "./gemini-utils.js";
 
-/** Build current date/time context string in Vietnam timezone */
-function buildDateContext(): string {
-  const now = new Date();
-  const vnFormatter = new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    weekday: "long",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const formatted = vnFormatter.format(now);
+export type { TokenUsage, AggregatedUsage };
 
-  const vnDay = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    weekday: "short",
-  }).format(now);
-  const dayMap: Record<string, string> = {
-    Mon: "T2", Tue: "T3", Wed: "T4", Thu: "T5",
-    Fri: "T6", Sat: "T7", Sun: "CN",
-  };
-  const dayShort = dayMap[vnDay] ?? vnDay;
+export type MessageRole = "user" | "assistant";
 
-  return `Hôm nay: ${formatted} (${dayShort})\nTimezone: Asia/Ho_Chi_Minh (UTC+7)`;
-}
-
-const SYSTEM_INSTRUCTIONS = `
-Bạn là AI Travel Assistant chuyên về du lịch Việt Nam cho nhân viên sale. Trả lời dựa trên DỮ LIỆU THỰC TẾ bên dưới.
-
-## QUY TẮC
-1. Khi tính giá: dùng BẢNG GIÁ CHÍNH XÁC trong dữ liệu, áp dụng quy tắc giá (trẻ em, phụ thu)
-2. Khi so sánh: dùng bảng đánh giá tiêu chí (nếu có)
-3. Khi gợi ý lịch trình: dùng LỊCH TRÌNH MẪU, tùy chỉnh theo yêu cầu KH
-4. Nếu không có dữ liệu: nói rõ "chưa có thông tin trong hệ thống"
-5. Trả lời bằng tiếng Việt, chuyên nghiệp, thân thiện
-6. Khi quote giá: LUÔN ghi rõ loại combo, loại ngày, số người tiêu chuẩn
-
-## HƯỚNG DẪN TÍNH GIÁ
-- Xác định NGÀY CHECK-IN từ ý định khách (dùng "NGÀY HIỆN TẠI" bên dưới để tính ngày cụ thể)
-- Map ngày check-in sang LOẠI NGÀY: T2-T5 → weekday, T6 → friday, T7 → saturday, CN → sunday, ngày lễ → holiday
-- Xác định LOẠI COMBO từ số đêm khách muốn ở: 1 đêm → 2n1d, 2 đêm → 3n2d, linh hoạt → per_night
-- Tra BẢNG GIÁ theo: phòng + combo type + day type → ra giá chính xác
-- Nếu khách nói "cuối tuần" → check-in T6 hoặc T7, dùng day type tương ứng
-- Nếu khách thêm/bớt người so với "số người tiêu chuẩn", áp dụng phụ thu +1ng hoặc giảm -1ng
-- LUÔN hỏi lại nếu thiếu thông tin: số người, ngày đi, loại phòng
-
-## KNOWLEDGE BASE (Dữ liệu thực tế từ hệ thống)
-`;
-
-const MODEL = "gemini-3-flash-preview";
-const CACHE_TTL = "600s"; // 10 minutes — matches AI context builder cache
-
-type MessageRole = "user" | "assistant";
-
-interface ChatMessage {
+export interface ChatMessage {
   role: MessageRole;
   content: string;
 }
 
-function toGeminiRole(role: MessageRole): "user" | "model" {
-  return role === "assistant" ? "model" : "user";
-}
+// ─── Client singleton ─────────────────────────────────────────────────────────
 
 let genai: GoogleGenAI | null = null;
 
 function getClient(): GoogleGenAI {
   if (!genai) {
-    if (!env.GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
-    }
+    if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
     genai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
   }
   return genai;
 }
 
-// ─── Explicit Context Caching ───────────────────────────────────────────────
-// Cache system instructions + KB context to reduce input token costs by ~50%.
-// Gemini 3 Flash requires minimum 1024 tokens for caching.
+// ─── History conversion ───────────────────────────────────────────────────────
 
-let activeCacheName: string | null = null;
-let activeCacheKbHash: string | null = null;
-let activeCacheExpiresAt = 0;
-
-/** Simple hash to detect KB content changes */
-function simpleHash(str: string): string {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-  }
-  return h.toString(36);
-}
-
-/** Get or create a Gemini cache for system prompt + KB context */
-async function getOrCreateCache(kbContext: string): Promise<string | null> {
-  const client = getClient();
-  const dateContext = buildDateContext();
-  const systemPrompt = `## NGÀY HIỆN TẠI\n${dateContext}\n\n` + SYSTEM_INSTRUCTIONS;
-  const kbHash = simpleHash(kbContext);
-
-  // Reuse existing cache if KB hasn't changed and cache hasn't expired
-  if (activeCacheName && activeCacheKbHash === kbHash && Date.now() < activeCacheExpiresAt) {
-    return activeCacheName;
-  }
-
-  try {
-    // Create new cache with KB context as content + system instructions
-    const cache = await client.caches.create({
-      model: MODEL,
-      config: {
-        contents: [{ role: "user", parts: [{ text: kbContext }] }],
-        systemInstruction: systemPrompt,
-        ttl: CACHE_TTL,
-      },
-    });
-
-    activeCacheName = cache.name ?? null;
-    activeCacheKbHash = kbHash;
-    // Cache expires in TTL seconds — refresh 30s early to avoid edge cases
-    activeCacheExpiresAt = Date.now() + (parseInt(CACHE_TTL) - 30) * 1000;
-
-    console.log(`[Gemini] Created context cache: ${activeCacheName}`);
-    return activeCacheName;
-  } catch (err) {
-    // Caching might fail if content is too short (<1024 tokens) — fall back to no-cache
-    console.warn("[Gemini] Context caching failed, using direct mode:", (err as Error).message);
-    activeCacheName = null;
-    return null;
-  }
-}
-
-/** Invalidate cache when KB data changes (called from AI context builder) */
-export function invalidateGeminiCache(): void {
-  activeCacheName = null;
-  activeCacheKbHash = null;
-  activeCacheExpiresAt = 0;
-}
-
-// ─── Chat Creation ──────────────────────────────────────────────────────────
-
-/** Build system prompt (used when caching is not available) */
-function buildSystemPrompt(kbContext: string): string {
-  const dateContext = buildDateContext();
-  return `## NGÀY HIỆN TẠI\n${dateContext}\n\n` + SYSTEM_INSTRUCTIONS + "\n" + kbContext;
-}
-
-/** Build Gemini chat instance — uses cache if available, falls back to direct prompt */
-async function createGeminiChat(messages: ChatMessage[], kbContext: string) {
-  const client = getClient();
-
-  const history = messages.slice(0, -1).map((m) => ({
-    role: toGeminiRole(m.role),
+function toContents(messages: ChatMessage[]): Content[] {
+  return messages.map((m) => ({
+    role: (m.role === "assistant" ? "model" : "user") as "user" | "model",
     parts: [{ text: m.content }],
   }));
-
-  const lastMessage = messages[messages.length - 1];
-  if (!lastMessage) throw new Error("No messages provided");
-
-  // Try to use explicit cache
-  const cacheName = await getOrCreateCache(kbContext);
-
-  const chat = cacheName
-    ? client.chats.create({
-        model: MODEL,
-        config: {
-          cachedContent: cacheName,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        },
-        history,
-      })
-    : client.chats.create({
-        model: MODEL,
-        config: {
-          systemInstruction: buildSystemPrompt(kbContext),
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        },
-        history,
-      });
-
-  return { chat, lastMessage: lastMessage.content, cached: !!cacheName };
 }
 
-// ─── Response Generation ────────────────────────────────────────────────────
+// ─── Thinking level mapping ──────────────────────────────────────────────────
 
-/** Generate a non-streaming chat response (fallback) */
-export async function generateChatResponse(
-  messages: ChatMessage[],
-  kbContext: string,
-): Promise<string> {
-  const { chat, lastMessage } = await createGeminiChat(messages, kbContext);
-  const response = await chat.sendMessage({ message: lastMessage });
-  return response.text ?? "";
-}
-
-/** Full token usage breakdown from Gemini API usageMetadata */
-export interface TokenUsage {
-  promptTokens: number;
-  responseTokens: number;
-  thinkingTokens: number;
-  cachedTokens: number;
-  totalTokens: number;
-}
-
-interface GeminiUsageMeta {
-  promptTokenCount?: number;
-  candidatesTokenCount?: number;
-  thoughtsTokenCount?: number;
-  cachedContentTokenCount?: number;
-  totalTokenCount?: number;
-}
-
-function extractUsage(chunk: unknown): TokenUsage | null {
-  const meta = (chunk as Record<string, unknown>)?.usageMetadata as GeminiUsageMeta | undefined;
-  if (!meta) return null;
-  return {
-    promptTokens: meta.promptTokenCount ?? 0,
-    responseTokens: meta.candidatesTokenCount ?? 0,
-    thinkingTokens: meta.thoughtsTokenCount ?? 0,
-    cachedTokens: meta.cachedContentTokenCount ?? 0,
-    totalTokens: meta.totalTokenCount ?? 0,
+function parseThinkingLevel(level: string): ThinkingLevel {
+  const map: Record<string, ThinkingLevel> = {
+    LOW: ThinkingLevel.LOW,
+    MEDIUM: ThinkingLevel.MEDIUM,
+    HIGH: ThinkingLevel.HIGH,
   };
+  return map[level.toUpperCase()] ?? ThinkingLevel.LOW;
 }
 
-/** Generate a streaming chat response with token usage tracking */
+// ─── Tool call events ─────────────────────────────────────────────────────────
+
+/** Info about a tool call execution — sent to frontend via SSE */
+export interface ToolCallEvent {
+  toolName: string;
+  args: Record<string, unknown>;
+  usedSkill: boolean;
+}
+
+/** Result of resolving tool calls — includes cheap model token usage */
+interface ToolResolveResult {
+  parts: Part[];
+  cheapUsage: TokenUsage;
+}
+
+/** Execute tool calls, route through cheap model if data is large */
+async function resolveToolCalls(
+  functionCalls: Array<{ name: string; args: Record<string, unknown> }>,
+  userQuestion: string,
+  onToolCall?: (event: ToolCallEvent) => void,
+): Promise<ToolResolveResult> {
+  let cheapUsage = emptyUsage();
+
+  const results = await Promise.all(
+    functionCalls.map(async (fc) => {
+      let result = await executeToolCall(fc.name, fc.args);
+      let usedSkill = false;
+
+      if (needsProcessing(result)) {
+        const resolved = await getSkillForToolAsync(fc.name);
+        if (resolved) {
+          const skillResult = await processWithSkill(resolved.prompt, userQuestion, result, resolved.modelConfig);
+          result = skillResult.text;
+          if (skillResult.usage) cheapUsage = addUsage(cheapUsage, skillResult.usage);
+          usedSkill = true;
+        }
+      }
+
+      onToolCall?.({ toolName: fc.name, args: fc.args, usedSkill });
+      return { name: fc.name, result };
+    }),
+  );
+
+  const parts = results.map(({ name, result }) => ({
+    functionResponse: { name, response: { result } },
+  })) as Part[];
+
+  return { parts, cheapUsage };
+}
+
+// ─── Main streaming entry point ───────────────────────────────────────────────
+
+/**
+ * Generate streaming chat response with tool-call orchestration.
+ * Reads model config from DB (admin-configurable).
+ */
 export async function* generateChatResponseStream(
   messages: ChatMessage[],
-  kbContext: string,
-  onUsage?: (usage: TokenUsage) => void,
+  catalog: string,
+  onToolCall?: (event: ToolCallEvent) => void,
+  onUsage?: (usage: AggregatedUsage) => void,
 ): AsyncGenerator<string> {
-  const { chat, lastMessage } = await createGeminiChat(messages, kbContext);
-  const stream = await chat.sendMessageStream({ message: lastMessage });
+  const client = getClient();
 
-  let lastChunk: unknown = null;
-  for await (const chunk of stream) {
-    lastChunk = chunk;
-    const text = chunk.text;
-    if (text) yield text;
+  // Read admin-configurable model settings from DB
+  const modelConfig = await getModelConfig();
+  const systemInstruction = await buildSystemPromptFromDb(catalog);
+  const contents = toContents(messages);
+  const config = {
+    tools: GEMINI_TOOLS,
+    systemInstruction,
+    temperature: modelConfig.temperature,
+    thinkingConfig: { thinkingLevel: parseThinkingLevel(modelConfig.thinkingLevel) },
+  };
+
+  const userQuestion = messages[messages.length - 1]?.content ?? "";
+
+  // Accumulate usage across all rounds
+  let mainUsage = emptyUsage();
+  let cheapUsage = emptyUsage();
+  let toolRounds = 0;
+
+  for (let round = 0; round < modelConfig.maxToolRounds; round++) {
+    const response = await client.models.generateContent({
+      model: modelConfig.modelName,
+      contents,
+      config,
+    });
+
+    // Accumulate main model usage from this tool round
+    const roundUsage = extractResponseUsage(response);
+    if (roundUsage) mainUsage = addUsage(mainUsage, roundUsage);
+
+    const functionCalls = response.functionCalls;
+    if (functionCalls && functionCalls.length > 0) {
+      toolRounds++;
+
+      // Preserve original model parts (includes thought_signature required by thinking mode)
+      const modelContent = response.candidates?.[0]?.content;
+      if (modelContent) {
+        contents.push(modelContent);
+      }
+
+      const toolResult = await resolveToolCalls(
+        functionCalls.map((fc) => ({
+          name: fc.name ?? "",
+          args: (fc.args ?? {}) as Record<string, unknown>,
+        })),
+        userQuestion,
+        onToolCall,
+      );
+
+      cheapUsage = addUsage(cheapUsage, toolResult.cheapUsage);
+      contents.push({ role: "user", parts: toolResult.parts });
+      continue;
+    }
+
+    // No more tool calls — stream the final text response
+    const stream = await client.models.generateContentStream({
+      model: modelConfig.modelName,
+      contents,
+      config,
+    });
+
+    let lastChunk: unknown = null;
+    for await (const chunk of stream) {
+      lastChunk = chunk;
+      const text = chunk.text;
+      if (text) yield text;
+    }
+
+    // Add final stream usage to accumulated total
+    if (lastChunk) {
+      const streamUsage = extractUsage(lastChunk);
+      if (streamUsage) mainUsage = addUsage(mainUsage, streamUsage);
+    }
+
+    onUsage?.({ main: mainUsage, cheap: cheapUsage, toolRounds });
+    return;
   }
 
-  if (lastChunk && onUsage) {
-    const usage = extractUsage(lastChunk);
-    if (usage) onUsage(usage);
+  onUsage?.({ main: mainUsage, cheap: cheapUsage, toolRounds });
+  yield "Xin lỗi, hệ thống gặp sự cố khi tra cứu dữ liệu. Vui lòng thử lại.";
+}
+
+/** Non-streaming fallback — collects stream into single string */
+export async function generateChatResponse(
+  messages: ChatMessage[],
+  catalog: string,
+): Promise<string> {
+  let result = "";
+  for await (const text of generateChatResponseStream(messages, catalog)) {
+    result += text;
   }
+  return result;
 }

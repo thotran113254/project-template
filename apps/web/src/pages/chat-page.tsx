@@ -13,6 +13,15 @@ import type { ChatSession, ChatMessage } from "@app/shared";
 interface ApiList<T> { data: T[] }
 interface ApiItem<T> { data: T }
 
+const TOOL_LABELS: Record<string, string> = {
+  getMarketOverview: "thông tin thị trường",
+  getMarketPricing: "bảng giá",
+  getMarketAttractions: "điểm du lịch",
+  getItineraryTemplates: "lịch trình mẫu",
+  getMarketBusinessData: "dữ liệu kinh doanh",
+  searchKnowledgeBase: "knowledge base",
+};
+
 async function fetchSessions(): Promise<ChatSession[]> {
   const res = await apiClient.get<ApiList<ChatSession>>("/chat/sessions");
   return res.data.data;
@@ -97,7 +106,7 @@ export default function ChatPage() {
     [queryClient, activeSessionId],
   );
 
-  const { send, streamingText, isStreaming, error, lastUsage, pendingUserMessage } = useChatStream({
+  const { send, streamingText, isStreaming, error, lastUsage, pendingUserMessage, toolCalls } = useChatStream({
     onComplete: onStreamComplete,
   });
 
@@ -195,14 +204,12 @@ export default function ChatPage() {
             )}
             {serverMessages.map((msg) => {
               const meta = msg.metadata as Record<string, unknown> | undefined;
-              const savedUsage = meta?.tokenUsage && meta?.estimatedCost
+              const savedUsage = meta?.costBreakdown
                 ? {
-                    tokenUsage: meta.tokenUsage,
-                    estimatedCost: meta.estimatedCost,
+                    costBreakdown: meta.costBreakdown,
                     turn: meta.turn as number | undefined,
                     durationMs: meta.durationMs as number | undefined,
                     hasThinking: meta.hasThinking as boolean | undefined,
-                    hasCachedContext: meta.hasCachedContext as boolean | undefined,
                   } as import("@/hooks/use-chat-stream").TokenUsageInfo
                 : null;
               return (
@@ -231,23 +238,36 @@ export default function ChatPage() {
                 createdAt={new Date().toISOString()}
               />
             )}
-            {isStreaming && !streamingText && (
+            {/* Tool call indicator — amber, shows during data retrieval */}
+            {isStreaming && !streamingText && toolCalls.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                <div className="flex gap-1">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-amber-400 [animation-delay:0ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-amber-400 [animation-delay:150ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-amber-400 [animation-delay:300ms]" />
+                </div>
+                Đang tra cứu {TOOL_LABELS[toolCalls[toolCalls.length - 1]?.toolName ?? ""] ?? "dữ liệu"}...
+              </div>
+            )}
+
+            {/* Default thinking indicator — teal */}
+            {isStreaming && !streamingText && toolCalls.length === 0 && (
               <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                 <div className="flex gap-1">
                   <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400 [animation-delay:0ms]" />
                   <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400 [animation-delay:150ms]" />
                   <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400 [animation-delay:300ms]" />
                 </div>
-                AI đang trả lời...
+                AI đang xử lý...
               </div>
             )}
             {error && (
               <div className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                Không thể nhận phản hồi từ AI. Vui lòng thử lại.
+                Không thể nhận phản hồi từ AI: {error}
               </div>
             )}
             {/* Token usage for streaming message (before it's saved to server) */}
-            {!isStreaming && lastUsage && !serverMessages.some(m => (m.metadata as Record<string,unknown>)?.tokenUsage) && (
+            {!isStreaming && lastUsage && !serverMessages.some(m => (m.metadata as Record<string,unknown>)?.costBreakdown) && (
               <ChatTokenUsage usage={lastUsage} />
             )}
             <div ref={bottomRef} />

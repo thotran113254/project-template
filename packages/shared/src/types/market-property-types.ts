@@ -80,10 +80,55 @@ export interface RoomPricing {
   seasonEnd: string | null;
   standardGuests: number;
   price: number;
+  discountPrice: number | null;
   pricePlus1: number | null;
   priceMinus1: number | null;
+  discountPricePlus1: number | null;
+  discountPriceMinus1: number | null;
+  underStandardPrice: number | null;
+  extraAdultSurcharge: number | null;
+  extraChildSurcharge: number | null;
   extraNight: number | null;
+  includedAmenities: string | null;
   notes: string | null;
+  aiVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransportProvider {
+  id: string;
+  marketId: string;
+  providerName: string;
+  providerCode: string | null;
+  transportCategory: string;
+  routeName: string;
+  contactInfo: Record<string, unknown>;
+  pickupPoints: Array<{ name: string; time: string }>;
+  notes: string | null;
+  sortOrder: number;
+  aiVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransportPricing {
+  id: string;
+  providerId: string;
+  vehicleClass: string;
+  seatType: string;
+  capacityPerUnit: number;
+  onewayListedPrice: number;
+  onewayDiscountPrice: number | null;
+  roundtripListedPrice: number | null;
+  roundtripDiscountPrice: number | null;
+  childFreeUnder: number | null;
+  childDiscountUnder: number | null;
+  childDiscountAmount: number | null;
+  onboardServices: string | null;
+  crossProvinceSurcharges: Array<{ province: string; surcharge: number }>;
+  notes: string | null;
+  sortOrder: number;
   aiVisible: boolean;
   createdAt: string;
   updatedAt: string;
@@ -175,7 +220,20 @@ export interface AiDataSetting {
   id: string;
   dataCategory: string;
   isEnabled: boolean;
+  creativityLevel: "strict" | "enhanced" | "creative";
   description: string | null;
   updatedBy: string | null;
+  updatedAt: string;
+}
+
+export interface AiChatConfig {
+  id: string;
+  configKey: string;
+  configValue: string;
+  configType: "string" | "number" | "boolean" | "text";
+  category: "model" | "prompt" | "behavior" | "skill";
+  label: string;
+  description: string | null;
+  sortOrder: number;
   updatedAt: string;
 }

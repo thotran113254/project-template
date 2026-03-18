@@ -10,17 +10,15 @@ import {
   marketTransportation,
   marketInventoryStrategies,
   marketProperties,
-  propertyRooms,
-  roomPricing,
   pricingConfigs,
   pricingOptions,
-  itineraryTemplates,
-  itineraryTemplateItems,
+  knowledgeBase,
   aiDataSettings,
 } from "../../db/schema/index.js";
-import type { RoomPricingRecord } from "../../db/schema/room-pricing-schema.js";
-import type { PropertyRoomRecord } from "../../db/schema/property-rooms-schema.js";
-import type { MarketPropertyRecord } from "../../db/schema/market-properties-schema.js";
+import {
+  fetchPropertiesWithRooms,
+  fetchItinerariesWithItems,
+} from "./ai-data-fetchers.js";
 import {
   formatMarketHeader,
   formatProperties,
@@ -43,94 +41,19 @@ let cachedContext: string | null = null;
 let cachedAt = 0;
 const CACHE_TTL = 5 * 60 * 1000;
 
+// Catalog cache (lightweight ~500-token summary for system prompts)
+let cachedCatalog: string | null = null;
+let catalogCachedAt = 0;
+
 export function invalidateAiContextCache(): void {
   cachedContext = null;
-  // Also invalidate Gemini explicit cache when KB data changes
-  import("../chat/gemini-service.js").then((m) => m.invalidateGeminiCache()).catch(() => {});
+  cachedCatalog = null;
+  catalogCachedAt = 0;
 }
 
 async function getAiSettings(): Promise<Record<string, boolean>> {
   const rows = await db.select().from(aiDataSettings);
   return Object.fromEntries(rows.map((r) => [r.dataCategory, r.isEnabled]));
-}
-
-async function fetchPropertiesWithRooms(
-  marketId: string,
-  includePricing: boolean,
-): Promise<
-  Array<{
-    prop: MarketPropertyRecord;
-    rooms: Array<{ room: PropertyRoomRecord; prices: RoomPricingRecord[] }>;
-  }>
-> {
-  const props = await db
-    .select()
-    .from(marketProperties)
-    .where(
-      and(
-        eq(marketProperties.marketId, marketId),
-        eq(marketProperties.aiVisible, true),
-      ),
-    );
-
-  const result = [];
-  for (const prop of props) {
-    const rooms = await db
-      .select()
-      .from(propertyRooms)
-      .where(
-        and(
-          eq(propertyRooms.propertyId, prop.id),
-          eq(propertyRooms.aiVisible, true),
-        ),
-      );
-
-    const roomsWithPrices = await Promise.all(
-      rooms.map(async (room) => {
-        if (!includePricing) return { room, prices: [] };
-        const prices = await db
-          .select()
-          .from(roomPricing)
-          .where(
-            and(
-              eq(roomPricing.roomId, room.id),
-              eq(roomPricing.aiVisible, true),
-            ),
-          );
-        return { room, prices };
-      }),
-    );
-
-    result.push({ prop, rooms: roomsWithPrices });
-  }
-  return result;
-}
-
-async function fetchItinerariesWithItems(
-  marketId: string,
-): Promise<{ templates: (typeof itineraryTemplates.$inferSelect)[]; itemsByTemplate: Map<string, (typeof itineraryTemplateItems.$inferSelect)[]> }> {
-  const templates = await db
-    .select()
-    .from(itineraryTemplates)
-    .where(
-      and(
-        eq(itineraryTemplates.marketId, marketId),
-        eq(itineraryTemplates.aiVisible, true),
-      ),
-    );
-
-  const itemsByTemplate = new Map<string, (typeof itineraryTemplateItems.$inferSelect)[]>();
-  await Promise.all(
-    templates.map(async (tpl) => {
-      const items = await db
-        .select()
-        .from(itineraryTemplateItems)
-        .where(eq(itineraryTemplateItems.templateId, tpl.id));
-      itemsByTemplate.set(tpl.id, items);
-    }),
-  );
-
-  return { templates, itemsByTemplate };
 }
 
 async function buildMarketSection(
@@ -302,4 +225,59 @@ export async function buildAiContext(): Promise<string> {
   cachedContext = result;
   cachedAt = Date.now();
   return result;
+}
+
+/** Build a lightweight catalog of active markets (with property counts by type) and published KB articles.
+ *  Designed to scale — shows counts instead of listing all names. */
+export async function buildCatalog(): Promise<string> {
+  if (cachedCatalog && Date.now() - catalogCachedAt < CACHE_TTL) {
+    return cachedCatalog;
+  }
+
+  const [activeMarkets, allProperties, kbArticles] = await Promise.all([
+    db
+      .select({ id: markets.id, name: markets.name, slug: markets.slug, highlights: markets.highlights })
+      .from(markets)
+      .where(and(eq(markets.status, "active"), eq(markets.aiVisible, true))),
+    db
+      .select({ marketId: marketProperties.marketId, type: marketProperties.type })
+      .from(marketProperties)
+      .where(and(eq(marketProperties.status, "active"), eq(marketProperties.aiVisible, true))),
+    db
+      .select({ title: knowledgeBase.title, category: knowledgeBase.category })
+      .from(knowledgeBase)
+      .where(eq(knowledgeBase.status, "published")),
+  ]);
+
+  // Group property counts by type per market
+  const propCountsByMarket = new Map<string, Record<string, number>>();
+  for (const p of allProperties) {
+    const counts = propCountsByMarket.get(p.marketId) ?? {};
+    counts[p.type] = (counts[p.type] ?? 0) + 1;
+    propCountsByMarket.set(p.marketId, counts);
+  }
+
+  let text = "[THỊ TRƯỜNG]\n";
+  for (const m of activeMarkets) {
+    const summary = m.highlights ? ` — ${m.highlights.slice(0, 80)}` : "";
+    text += `- ${m.slug}: ${m.name}${summary}\n`;
+    const counts = propCountsByMarket.get(m.id);
+    if (counts) {
+      const total = Object.values(counts).reduce((s, n) => s + n, 0);
+      const breakdown = Object.entries(counts).map(([t, n]) => `${n} ${t}`).join(", ");
+      text += `  Lưu trú: ${total} cơ sở (${breakdown})\n`;
+    }
+  }
+  text += "\n→ Gọi getMarketOverview(slug) để xem danh sách cơ sở cụ thể.\n";
+
+  if (kbArticles.length > 0) {
+    text += "\n[KNOWLEDGE BASE]\n";
+    for (const a of kbArticles) {
+      text += `- [${a.category}] ${a.title}\n`;
+    }
+  }
+
+  cachedCatalog = text;
+  catalogCachedAt = Date.now();
+  return text;
 }

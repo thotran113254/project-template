@@ -16,6 +16,8 @@ import {
   roomPricing,
   itineraryTemplates,
   pricingConfigs,
+  transportProviders,
+  transportPricing,
 } from "../../db/schema/index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +36,8 @@ const TABLE_MAP: Record<string, { table: any; idCol: any }> = {
   room_pricing: { table: roomPricing, idCol: roomPricing.id },
   itinerary_template: { table: itineraryTemplates, idCol: itineraryTemplates.id },
   pricing_config: { table: pricingConfigs, idCol: pricingConfigs.id },
+  transport_provider: { table: transportProviders, idCol: transportProviders.id },
+  transport_pricing: { table: transportPricing, idCol: transportPricing.id },
 };
 
 export async function toggleAiVisible(entityType: string, entityId: string, aiVisible: boolean) {

@@ -90,7 +90,7 @@ project-template/
 - User profile management
 - User list (admin)
 
-#### Market Data Module (`apps/api/src/modules/market-data/`) **NEW**
+#### Market Data Module (`apps/api/src/modules/market-data/`)
 Manages tourism market data, replacing Google Sheets.
 
 **Services**:
@@ -109,14 +109,32 @@ Manages tourism market data, replacing Google Sheets.
 - `pricing-configs-service.ts` - Flexible pricing rules
 - `ai-data-settings-service.ts` - AI visibility toggles
 - `ai-context-builder.ts` - Structured AI context builder
+- `transport-provider-service.ts` - Bus/ferry provider management
+- `transport-pricing-service.ts` - Transport pricing by vehicle class
+- `ai-transport-fetchers.ts` - AI context for transport data
 
 **Routes**: `/api/v1/markets`, `/api/v1/pricing-configs`, etc.
 
+#### Pricing Module (`apps/api/src/modules/pricing/`) **NEW**
+Calculates complex combo packages (rooms + transport + ferry) with multi-level pricing.
+
+**Services**:
+- `combo-calculator-service.ts` - Main combo pricing orchestrator
+- `combo-room-allocator.ts` - Allocates guests to room types optimally
+- `combo-transport-resolver.ts` - Resolves transport + ferry costs
+- `combo-calculator-routes.ts` - POST `/combo-calculator/calculate` endpoint
+
+**Features**:
+- Multi-level pricing: standard, discount, under-standard, surcharges
+- Dynamic occupancy: adults + children (free <5, discount <10)
+- Profit margin application (default 15%, overridable)
+- Role-based pricing visibility (staff: listed only, admin: listed + discount)
+
 ---
 
-## Database Schema (v2.2)
+## Database Schema (v2.3)
 
-### Core Market Data Tables (17 new tables)
+### Core Market Data Tables (19 tables)
 
 ```
 markets (1)──(N) market_competitors
@@ -129,6 +147,7 @@ markets (1)──(N) market_competitors
    │────────(N) evaluation_criteria
    │────────(N) itinerary_templates ──(N) itinerary_template_items
    │────────(N) pricing_configs
+   │────────(N) transport_providers ──(N) transport_pricing
    └────────(N) market_properties (1)──(N) property_rooms ──(N) room_pricing
                     │────────────(N) property_evaluations ──(1) evaluation_criteria
                     └────────────(N) pricing_configs
@@ -166,14 +185,17 @@ All API responses wrap data in `ApiResponse<T>` structure:
 - Current: `/api/v1`
 - Versioning strategy: URL path versioning for future compatibility
 
-### Endpoints (60+)
+### Endpoints (70+)
 Organized by resource:
 - `/api/v1/markets` - Market management
 - `/api/v1/pricing-configs` - Pricing rules
 - `/api/v1/evaluation-criteria` - Evaluation templates
 - `/api/v1/properties` - Property management
 - `/api/v1/ai-data-settings` - AI visibility config
-- And 55+ other endpoints for complete CRUD coverage
+- `/api/v1/markets/:id/transport-providers` - Transport provider CRUD
+- `/api/v1/transport-providers/:id/pricing` - Transport pricing CRUD
+- `/api/v1/combo-calculator/calculate` - Combo package calculator
+- And 62+ other endpoints for complete coverage
 
 ---
 

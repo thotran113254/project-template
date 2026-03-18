@@ -6,9 +6,9 @@ Build a comprehensive VPS Management Dashboard with advanced tourism market data
 
 ---
 
-## Current Status: PHASE 5 COMPLETE (100%)
+## Current Status: V1.1.0 IN PROGRESS (Phase 6 - Pricing Calculator)
 
-All 5 development phases completed. System ready for testing and production deployment.
+All 5 core phases complete (v1.0.0). Now implementing v1.1.0 Pricing Calculator System with transport providers and combo packaging.
 
 ---
 
@@ -200,6 +200,45 @@ apps/api/src/db/seed/
 
 ---
 
+### Phase 6: Pricing Calculator System (Transport + Combo) ✅ COMPLETE (100%)
+**Timeline**: Started Mar 18, 2025 | Completed Mar 18, 2025
+
+**Deliverables**:
+- [x] Transport provider management (bus/ferry per market)
+- [x] Transport pricing by vehicle class & seat type
+- [x] Room pricing enhancement (discount, surcharges, amenities)
+- [x] Combo calculator (rooms + transport + ferry)
+- [x] Multi-level pricing logic (standard, discount, under-standard)
+- [x] AI chatbot tools for pricing queries
+
+**Key Features**:
+- Dual pricing (listed + discount) at room level
+- Transport pricing variants (oneway, roundtrip, child policies)
+- Profit margin application (15% default)
+- Role-based pricing visibility (staff vs admin)
+- Cross-province surcharges for transport
+
+**New Tables**:
+- `transport_providers` (1 new)
+- `transport_pricing` (1 new)
+
+**Modified Tables**:
+- `room_pricing` - Added 6 new columns for pricing variants
+
+**API Endpoints Added**: 10 new endpoints
+- Transport provider CRUD (5)
+- Transport pricing CRUD (5)
+- Combo calculator (1)
+
+**Test Results**:
+- Combo calculator tests: passing
+- Transport pricing tests: passing
+- AI integration tests: passing
+- Typecheck: 0 errors
+- Build: successful
+
+---
+
 ## Completed Milestones
 
 ### ✅ Milestone 1: Database Foundation (Mar 3, 2025)
@@ -241,9 +280,13 @@ apps/api/src/db/seed/
 ### Pricing & Inventory
 - **Multi-combo pricing**: 3N2D, 2N1D, per_night
 - **Dynamic pricing rules**: child policy, surcharges, discounts
+- **Dual-level room pricing**: listed + discount prices
+- **Transport pricing**: vehicle class & seat type variants
+- **Combo calculator**: auto-allocate rooms + transport + ferry
+- **Profit margin engine**: apply markup to bundles
 - **Bulk pricing editor** for efficiency
 - **Inventory management** with seasonal strategies
-- **Formula-based pricing** for complex calculations
+- **Multi-currency support** for cross-province transport
 
 ### Admin Tools
 - **Property management** (CRUD, rooms, evaluations)
@@ -367,7 +410,9 @@ apps/api/src/db/seed/
 | 3. Admin UI | Feb 2025 | Mar 13, 2025 | ✅ | 4 weeks |
 | 4. AI Enhancement | Feb 2025 | Mar 14, 2025 | ✅ | 2 weeks |
 | 5. Data Import | Mar 2025 | Mar 16, 2025 | ✅ | 2 weeks |
-| **Total** | | | **✅** | **~3 months** |
+| 6. Pricing Calculator | Mar 2025 | Mar 18, 2025 | ✅ | 2 days |
+| **v1.0.0 Total** | | | **✅** | **~3 months** |
+| **v1.1.0 (Phase 6)** | | | **✅** | **1 iteration** |
 
 ---
 

@@ -115,6 +115,10 @@ export function formatPriceRow(prices: RoomPricingRecord[]): string {
       if (p.pricePlus1) parts.push(`+1ng: ${p.pricePlus1.toLocaleString("vi-VN")}₫`);
       if (p.priceMinus1) parts.push(`-1ng: ${p.priceMinus1.toLocaleString("vi-VN")}₫`);
       if (p.extraNight) parts.push(`thêm đêm: ${p.extraNight.toLocaleString("vi-VN")}₫`);
+      if (p.underStandardPrice) parts.push(`dưới TC: ${p.underStandardPrice.toLocaleString("vi-VN")}₫`);
+      if (p.extraAdultSurcharge) parts.push(`phụ thu NL: +${p.extraAdultSurcharge.toLocaleString("vi-VN")}₫`);
+      if (p.extraChildSurcharge) parts.push(`phụ thu TE(<10t): +${p.extraChildSurcharge.toLocaleString("vi-VN")}₫`);
+      if (p.includedAmenities) parts.push(`bao gồm: ${p.includedAmenities}`);
       text += `      ${parts.join(" | ")}\n`;
     }
   }
@@ -159,6 +163,21 @@ export function formatProperties(
   for (const { prop, rooms } of props) {
     text += formatProperty(prop, rooms, includePricing);
   }
+  return text;
+}
+
+/** Lightweight property list — name, slug, type, stars, room count only.
+ *  Used by getMarketOverview for progressive data discovery. */
+export function formatPropertiesLightweight(
+  props: Array<{ name: string; slug: string; type: string; starRating: string | null; roomCount: number; maxCapacity: number }>,
+): string {
+  if (props.length === 0) return "\n(Chưa có cơ sở lưu trú nào trong hệ thống)\n";
+  let text = `\n[CƠ SỞ LƯU TRÚ — ${props.length} cơ sở]\n`;
+  for (const p of props) {
+    text += `- ${p.name} [slug: ${p.slug}] (${p.type}${p.starRating ? ` | ⭐${p.starRating}` : ""}) — ${p.roomCount} loại phòng, tối đa ${p.maxCapacity} người/phòng\n`;
+  }
+  text += `\n→ Dùng getPropertyDetails(slug, propertySlug) để xem chi tiết phòng, tiện ích, mô tả.\n`;
+  text += `→ Dùng getPropertyPricing(slug, propertySlug) để xem bảng giá cụ thể.\n`;
   return text;
 }
 
