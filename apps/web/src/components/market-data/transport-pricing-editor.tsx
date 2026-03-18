@@ -2,53 +2,22 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableHeaderRow } from "@/components/ui/data-table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  TransportPricingFormDialog,
+  EMPTY_PRICING_FORM,
+  type TransportPricingFormState,
+} from "@/components/market-data/transport-pricing-form-dialog";
 import { apiClient } from "@/lib/api-client";
+import { fmtVnd } from "@/lib/format-currency";
 import type { TransportPricing } from "@app/shared";
 
 interface TransportPricingEditorProps {
   providerId: string;
   isAdmin: boolean;
 }
-
-import { fmtVnd } from "@/lib/format-currency";
-
-const VEHICLE_CLASSES = ["cabin", "limousine", "sleeper", "speed_boat", "small_boat"];
-const SEAT_TYPES = ["single", "double", "front", "middle", "back", "vip", "standard", "sleeper"];
-
-type PricingForm = {
-  vehicleClass: string;
-  seatType: string;
-  capacityPerUnit: string;
-  onewayListedPrice: string;
-  roundtripListedPrice: string;
-  onewayDiscountPrice: string;
-  roundtripDiscountPrice: string;
-  childFreeUnder: string;
-  childDiscountUnder: string;
-  childDiscountAmount: string;
-  onboardServices: string;
-};
-
-const EMPTY_FORM: PricingForm = {
-  vehicleClass: "cabin",
-  seatType: "standard",
-  capacityPerUnit: "1",
-  onewayListedPrice: "",
-  roundtripListedPrice: "",
-  onewayDiscountPrice: "",
-  roundtripDiscountPrice: "",
-  childFreeUnder: "5",
-  childDiscountUnder: "10",
-  childDiscountAmount: "",
-  onboardServices: "",
-};
-
-const selectCls = "flex h-9 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-1 text-sm";
 
 /** Inline pricing editor for a transport provider with full CRUD. */
 export function TransportPricingEditor({ providerId, isAdmin }: TransportPricingEditorProps) {
@@ -57,7 +26,7 @@ export function TransportPricingEditor({ providerId, isAdmin }: TransportPricing
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<TransportPricing | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState<PricingForm>(EMPTY_FORM);
+  const [form, setForm] = useState<TransportPricingFormState>(EMPTY_PRICING_FORM);
 
   const { data, isLoading } = useQuery({
     queryKey: qk,
@@ -81,6 +50,12 @@ export function TransportPricingEditor({ providerId, isAdmin }: TransportPricing
         childDiscountUnder: form.childDiscountUnder ? Number(form.childDiscountUnder) : null,
         childDiscountAmount: form.childDiscountAmount ? Number(form.childDiscountAmount) : null,
         onboardServices: form.onboardServices || null,
+        crossProvinceSurcharges: form.crossProvinceSurchargesText
+          .split("\n").map((l) => l.trim()).filter(Boolean)
+          .map((line) => {
+            const [province, ...rest] = line.split(":");
+            return { province: (province ?? "").trim(), surcharge: Number((rest.join(":")).trim()) || 0 };
+          }),
       };
       if (editItem) {
         await apiClient.patch(`/transport-providers/${providerId}/pricing/${editItem.id}`, payload);
@@ -106,7 +81,7 @@ export function TransportPricingEditor({ providerId, isAdmin }: TransportPricing
 
   const openAdd = () => {
     setEditItem(null);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_PRICING_FORM);
     setDialogOpen(true);
   };
 
@@ -124,12 +99,11 @@ export function TransportPricingEditor({ providerId, isAdmin }: TransportPricing
       childDiscountUnder: item.childDiscountUnder ? String(item.childDiscountUnder) : "",
       childDiscountAmount: item.childDiscountAmount ? String(item.childDiscountAmount) : "",
       onboardServices: item.onboardServices ?? "",
+      crossProvinceSurchargesText: ((item.crossProvinceSurcharges ?? []) as Array<{ province: string; surcharge: number }>)
+        .map((s) => `${s.province}: ${s.surcharge}`).join("\n"),
     });
     setDialogOpen(true);
   };
-
-  const sf = (key: keyof PricingForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((s) => ({ ...s, [key]: e.target.value }));
 
   const items = data ?? [];
   const colSpan = isAdmin ? 8 : 6;
@@ -199,77 +173,16 @@ export function TransportPricingEditor({ providerId, isAdmin }: TransportPricing
         </Table>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editItem ? "Chỉnh sửa giá vé" : "Thêm giá vé mới"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Hạng xe *</label>
-              <select className={selectCls} value={form.vehicleClass} onChange={(e) => setForm((s) => ({ ...s, vehicleClass: e.target.value }))}>
-                {VEHICLE_CLASSES.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Loại ghế *</label>
-              <select className={selectCls} value={form.seatType} onChange={(e) => setForm((s) => ({ ...s, seatType: e.target.value }))}>
-                {SEAT_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Sức chứa/đơn vị</label>
-              <Input type="number" value={form.capacityPerUnit} onChange={sf("capacityPerUnit")} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Giá 1 chiều (VND) *</label>
-              <Input type="number" value={form.onewayListedPrice} onChange={sf("onewayListedPrice")} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Giá 2 chiều (VND)</label>
-              <Input type="number" value={form.roundtripListedPrice} onChange={sf("roundtripListedPrice")} />
-            </div>
-            {isAdmin && (
-              <>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-orange-600">CK 1 chiều (VND)</label>
-                  <Input type="number" value={form.onewayDiscountPrice} onChange={sf("onewayDiscountPrice")} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-orange-600">CK 2 chiều (VND)</label>
-                  <Input type="number" value={form.roundtripDiscountPrice} onChange={sf("roundtripDiscountPrice")} />
-                </div>
-              </>
-            )}
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Trẻ em miễn phí dưới (tuổi)</label>
-              <Input type="number" value={form.childFreeUnder} onChange={sf("childFreeUnder")} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Trẻ em giảm giá dưới (tuổi)</label>
-              <Input type="number" value={form.childDiscountUnder} onChange={sf("childDiscountUnder")} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Mức giảm giá trẻ em (%)</label>
-              <Input type="number" value={form.childDiscountAmount} onChange={sf("childDiscountAmount")} />
-            </div>
-            <div className="col-span-2 flex flex-col gap-1">
-              <label className="text-sm font-medium">Dịch vụ trên xe</label>
-              <Input value={form.onboardServices} onChange={sf("onboardServices")} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Hủy</Button>
-            <Button
-              className="bg-teal-600 hover:bg-teal-700"
-              disabled={saveMutation.isPending || !form.onewayListedPrice}
-              onClick={() => saveMutation.mutate()}
-            >
-              {saveMutation.isPending ? "Đang lưu..." : "Lưu"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TransportPricingFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        form={form}
+        setForm={setForm}
+        isEditing={!!editItem}
+        isAdmin={isAdmin}
+        isSaving={saveMutation.isPending}
+        onSave={() => saveMutation.mutate()}
+      />
 
       <ConfirmDialog
         open={!!deleteId}

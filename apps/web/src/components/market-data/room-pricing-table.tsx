@@ -1,32 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { apiClient } from "@/lib/api-client";
-import { usePricingOptions } from "@/hooks/use-pricing-options";
-import type { PropertyRoom, RoomPricing } from "@app/shared";
-
 import { fmtVnd } from "@/lib/format-currency";
-
-type PricingForm = {
-  comboType: string; dayType: string; standardGuests: string;
-  price: string; pricePlus1: string; priceMinus1: string; extraNight: string;
-  discountPrice: string; discountPricePlus1: string; discountPriceMinus1: string;
-  underStandardPrice: string; extraAdultSurcharge: string;
-  extraChildSurcharge: string; includedAmenities: string;
-};
-
-const EMPTY_PRICING: PricingForm = {
-  comboType: "", dayType: "", standardGuests: "2",
-  price: "", pricePlus1: "", priceMinus1: "", extraNight: "",
-  discountPrice: "", discountPricePlus1: "", discountPriceMinus1: "",
-  underStandardPrice: "", extraAdultSurcharge: "",
-  extraChildSurcharge: "", includedAmenities: "",
-};
+import { usePricingOptions } from "@/hooks/use-pricing-options";
+import {
+  RoomPricingFormDialog,
+  EMPTY_ROOM_PRICING,
+  type RoomPricingFormState,
+} from "@/components/market-data/room-pricing-form-dialog";
+import type { PropertyRoom, RoomPricing } from "@app/shared";
 
 /** Pricing management table for a single room with full CRUD. */
 export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: boolean }) {
@@ -34,7 +20,7 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
   const { comboOptions, dayOptions, comboLabel, dayLabel, isLoading: optionsLoading } = usePricingOptions();
   const [pricingDialog, setPricingDialog] = useState(false);
   const [editPricing, setEditPricing] = useState<RoomPricing | null>(null);
-  const [pForm, setPForm] = useState<PricingForm>(EMPTY_PRICING);
+  const [pForm, setPForm] = useState<RoomPricingFormState>(EMPTY_ROOM_PRICING);
   const [deleteTarget, setDeleteTarget] = useState<RoomPricing | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -84,7 +70,7 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
   const openAdd = () => {
     setEditPricing(null);
     setPForm({
-      ...EMPTY_PRICING,
+      ...EMPTY_ROOM_PRICING,
       comboType: comboOptions[0]?.optionKey ?? "",
       dayType: dayOptions[0]?.optionKey ?? "",
       standardGuests: String(room.capacity),
@@ -114,7 +100,7 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
   const closePricingDialog = () => {
     setPricingDialog(false);
     setEditPricing(null);
-    setPForm(EMPTY_PRICING);
+    setPForm(EMPTY_ROOM_PRICING);
     setSaveError(null);
   };
 
@@ -160,11 +146,17 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
                 {isAdmin && p.discountPrice != null && (
                   <span className="text-orange-500 text-[10px]">CK: {fmtVnd(p.discountPrice)}</span>
                 )}
+                {p.underStandardPrice != null && (
+                  <span className="text-blue-500 text-[10px]">Dưới TC: {fmtVnd(p.underStandardPrice)}</span>
+                )}
                 {p.extraAdultSurcharge != null && (
                   <span className="text-[var(--muted-foreground)] text-[10px]">+NL: {fmtVnd(p.extraAdultSurcharge)}</span>
                 )}
+                {p.extraChildSurcharge != null && (
+                  <span className="text-[var(--muted-foreground)] text-[10px]">+TE: {fmtVnd(p.extraChildSurcharge)}</span>
+                )}
                 {p.includedAmenities && (
-                  <span className="text-[var(--muted-foreground)] text-[10px] truncate">{p.includedAmenities}</span>
+                  <span className="text-green-600 text-[10px] truncate" title={p.includedAmenities}>{p.includedAmenities}</span>
                 )}
               </div>
             ))}
@@ -172,69 +164,20 @@ export function PricingTable({ room, isAdmin }: { room: PropertyRoom; isAdmin: b
         </div>
       ))}
 
-      {/* Pricing add/edit dialog */}
-      <Dialog open={pricingDialog} onOpenChange={(open) => { if (!open) closePricingDialog(); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editPricing ? "Sửa giá" : "Thêm giá"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Combo *</label>
-              <select className="flex h-9 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-1 text-sm" value={pForm.comboType} onChange={(e) => setPForm((f) => ({ ...f, comboType: e.target.value }))}>
-                {comboOptions.map((o) => <option key={o.optionKey} value={o.optionKey}>{o.label}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Loại ngày *</label>
-              <select className="flex h-9 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-1 text-sm" value={pForm.dayType} onChange={(e) => setPForm((f) => ({ ...f, dayType: e.target.value }))}>
-                {dayOptions.map((o) => <option key={o.optionKey} value={o.optionKey}>{o.label}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Số người TC *</label><Input type="number" value={pForm.standardGuests} onChange={(e) => setPForm((f) => ({ ...f, standardGuests: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Giá niêm yết *</label><Input type="number" value={pForm.price} onChange={(e) => setPForm((f) => ({ ...f, price: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">+1 người</label><Input type="number" value={pForm.pricePlus1} onChange={(e) => setPForm((f) => ({ ...f, pricePlus1: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">-1 người</label><Input type="number" value={pForm.priceMinus1} onChange={(e) => setPForm((f) => ({ ...f, priceMinus1: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Thêm đêm</label><Input type="number" value={pForm.extraNight} onChange={(e) => setPForm((f) => ({ ...f, extraNight: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Dưới TC (giá)</label><Input type="number" value={pForm.underStandardPrice} onChange={(e) => setPForm((f) => ({ ...f, underStandardPrice: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Phụ thu NL thêm</label><Input type="number" value={pForm.extraAdultSurcharge} onChange={(e) => setPForm((f) => ({ ...f, extraAdultSurcharge: e.target.value }))} /></div>
-            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Phụ thu trẻ em</label><Input type="number" value={pForm.extraChildSurcharge} onChange={(e) => setPForm((f) => ({ ...f, extraChildSurcharge: e.target.value }))} /></div>
-            <div className="col-span-2 flex flex-col gap-1">
-              <label className="text-sm font-medium">Tiện ích bao gồm</label>
-              <textarea
-                className="flex min-h-[60px] w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
-                value={pForm.includedAmenities}
-                onChange={(e) => setPForm((f) => ({ ...f, includedAmenities: e.target.value }))}
-                placeholder="VD: Bữa sáng, hồ bơi, đưa đón sân bay..."
-              />
-            </div>
+      <RoomPricingFormDialog
+        open={pricingDialog}
+        onClose={closePricingDialog}
+        form={pForm}
+        setForm={setPForm}
+        isEditing={!!editPricing}
+        isAdmin={isAdmin}
+        isSaving={saveMutation.isPending}
+        onSave={() => { setSaveError(null); saveMutation.mutate(); }}
+        saveError={saveError}
+        comboOptions={comboOptions}
+        dayOptions={dayOptions}
+      />
 
-            {/* Admin-only discount section */}
-            {isAdmin && (
-              <div className="col-span-2 border-t pt-3 mt-1">
-                <p className="text-xs font-semibold text-orange-600 mb-2">Giá chiết khấu (Admin)</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1"><label className="text-sm font-medium text-orange-600">Giá CK</label><Input type="number" value={pForm.discountPrice} onChange={(e) => setPForm((f) => ({ ...f, discountPrice: e.target.value }))} /></div>
-                  <div className="flex flex-col gap-1"><label className="text-sm font-medium text-orange-600">CK +1 người</label><Input type="number" value={pForm.discountPricePlus1} onChange={(e) => setPForm((f) => ({ ...f, discountPricePlus1: e.target.value }))} /></div>
-                  <div className="flex flex-col gap-1"><label className="text-sm font-medium text-orange-600">CK -1 người</label><Input type="number" value={pForm.discountPriceMinus1} onChange={(e) => setPForm((f) => ({ ...f, discountPriceMinus1: e.target.value }))} /></div>
-                </div>
-              </div>
-            )}
-          </div>
-          {saveError && (
-            <div className="flex items-start gap-2 rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-400">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{saveError}</span>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={closePricingDialog}>Hủy</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700" disabled={saveMutation.isPending || !pForm.price} onClick={() => { setSaveError(null); saveMutation.mutate(); }}>
-              {saveMutation.isPending ? "Đang lưu..." : "Lưu"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete pricing confirmation */}
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}

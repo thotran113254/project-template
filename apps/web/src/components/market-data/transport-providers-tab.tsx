@@ -2,13 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableHeaderRow } from "@/components/ui/data-table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AiVisibilityToggle } from "@/components/market-data/ai-visibility-toggle";
 import { Spinner } from "@/components/ui/spinner";
 import { TransportPricingEditor } from "@/components/market-data/transport-pricing-editor";
+import {
+  TransportProviderFormDialog,
+  EMPTY_PROVIDER_FORM,
+  type TransportProviderFormState,
+} from "@/components/market-data/transport-provider-form-dialog";
 import { apiClient } from "@/lib/api-client";
 import type { TransportProvider } from "@app/shared";
 
@@ -16,27 +19,6 @@ interface TransportProvidersTabProps {
   marketId: string;
   isAdmin: boolean;
 }
-
-type FormState = {
-  providerName: string;
-  providerCode: string;
-  transportCategory: string;
-  routeName: string;
-};
-
-const EMPTY_FORM: FormState = {
-  providerName: "",
-  providerCode: "",
-  transportCategory: "bus",
-  routeName: "",
-};
-
-const CATEGORIES = [
-  { value: "bus", label: "Xe khách" },
-  { value: "ferry", label: "Tàu/phà" },
-];
-
-const selectCls = "flex h-9 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-1 text-sm";
 
 function CategoryBadge({ category }: { category: string }) {
   const isFerry = category === "ferry";
@@ -57,7 +39,7 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<TransportProvider | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<TransportProviderFormState>(EMPTY_PROVIDER_FORM);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -70,11 +52,25 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const pickupPoints = form.pickupPointsText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const match = line.match(/^(\S+)\s+(.+)$/);
+          return match ? { time: match[1]!, name: match[2]! } : { time: "", name: line };
+        });
+      const contactInfo: Record<string, string> = {};
+      if (form.contactPhone) contactInfo.phone = form.contactPhone;
+      if (form.contactZalo) contactInfo.zalo = form.contactZalo;
       const payload = {
         providerName: form.providerName,
         providerCode: form.providerCode || null,
         transportCategory: form.transportCategory,
         routeName: form.routeName,
+        pickupPoints: pickupPoints.length > 0 ? pickupPoints : [],
+        contactInfo: Object.keys(contactInfo).length > 0 ? contactInfo : {},
+        notes: form.notes || null,
       };
       if (editItem) {
         await apiClient.patch(`/markets/${marketId}/transport-providers/${editItem.id}`, payload);
@@ -100,17 +96,23 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
 
   const openAdd = () => {
     setEditItem(null);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_PROVIDER_FORM);
     setDialogOpen(true);
   };
 
   const openEdit = (item: TransportProvider) => {
     setEditItem(item);
+    const points = (item.pickupPoints ?? []) as Array<{ name: string; time: string }>;
+    const contact = (item.contactInfo ?? {}) as Record<string, string>;
     setForm({
       providerName: item.providerName,
       providerCode: item.providerCode ?? "",
       transportCategory: item.transportCategory,
       routeName: item.routeName,
+      pickupPointsText: points.map((p) => `${p.time} ${p.name}`).join("\n"),
+      contactPhone: contact.phone ?? "",
+      contactZalo: contact.zalo ?? "",
+      notes: item.notes ?? "",
     });
     setDialogOpen(true);
   };
@@ -118,9 +120,6 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
-
-  const sf = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((s) => ({ ...s, [key]: e.target.value }));
 
   const items = data ?? [];
   const colSpan = isAdmin ? 6 : 5;
@@ -220,47 +219,15 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
         </Table>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editItem ? "Chỉnh sửa nhà xe/tàu" : "Thêm nhà xe/tàu mới"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 grid-cols-2">
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Tên nhà xe/tàu *</label>
-              <Input value={form.providerName} onChange={sf("providerName")} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Mã nhà xe</label>
-              <Input value={form.providerCode} onChange={sf("providerCode")} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Loại phương tiện *</label>
-              <select
-                className={selectCls}
-                value={form.transportCategory}
-                onChange={(e) => setForm((s) => ({ ...s, transportCategory: e.target.value }))}
-              >
-                {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </div>
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Tuyến đường *</label>
-              <Input value={form.routeName} onChange={sf("routeName")} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Hủy</Button>
-            <Button
-              className="bg-teal-600 hover:bg-teal-700"
-              disabled={saveMutation.isPending || !form.providerName || !form.routeName}
-              onClick={() => saveMutation.mutate()}
-            >
-              {saveMutation.isPending ? "Đang lưu..." : "Lưu"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TransportProviderFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        form={form}
+        setForm={setForm}
+        isEditing={!!editItem}
+        isSaving={saveMutation.isPending}
+        onSave={() => saveMutation.mutate()}
+      />
 
       <ConfirmDialog
         open={!!deleteId}
