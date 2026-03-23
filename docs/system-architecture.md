@@ -130,9 +130,14 @@ Calculates complex combo packages (rooms + transport + ferry) with multi-level p
 - Profit margin application (default 15%, overridable)
 - Role-based pricing visibility (staff: listed only, admin: listed + discount)
 
+**Pricing Configuration (v1.2.0)**:
+- Active combo types: per_night only
+- Disabled combo types: 2n1d, 3n2d (for simplified market testing)
+- AI pricing search: hidden itemized costs, focused on total packages
+
 ---
 
-## Database Schema (v2.3)
+## Database Schema (v2.4)
 
 ### Core Market Data Tables (19 tables)
 
@@ -160,6 +165,12 @@ ai_data_settings (global toggles per 12 categories)
 - JSONB fields for flexible data (amenities, images, metadata)
 - Multi-level pricing support (3N2D, 2N1D, per_night combos)
 - Soft references between market data and existing tables
+
+**v2.4 Schema Changes (Mar 23, 2025)**:
+- `market_properties`: Added `propertyCode` field for property identifier tracking
+- `transport_providers`: Added `images` (JSONB array) for provider photos/logos
+- `transport_providers`: Added `pricingNotes` (text) for pricing clarifications
+- Backward compatible: all new fields are optional
 
 ---
 
