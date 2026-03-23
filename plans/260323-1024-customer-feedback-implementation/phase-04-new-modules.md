@@ -3,7 +3,7 @@
 ## Overview
 - **Priority**: MEDIUM
 - **Effort**: 5-7 days
-- **Status**: pending
+- **Status**: completed
 - **Depends on**: Phase 1 (branding in sidebar for new menu items)
 - **FBs**: FB-08 (market knowledge updates), FB-09 (experience activities), FB-13 (knowledge contribution workflow)
 
@@ -271,25 +271,25 @@ Add admin nav item:
 7. Test sidebar: staff sees "Dong gop kien thuc", admin sees "Duyet kien thuc"
 
 ## Todo List
-- [ ] Create market-knowledge-updates-schema.ts
-- [ ] Create market-experiences-schema.ts
-- [ ] Export schemas in index.ts + add relations
-- [ ] Add shared types + Zod schemas in packages/shared
-- [ ] Run pnpm db:push
-- [ ] Create knowledge-updates API routes + service
-- [ ] Create experiences API routes + service
-- [ ] Create knowledge-updates-tab.tsx + form dialog
-- [ ] Create experiences-tab.tsx + form dialog
-- [ ] Add 2 new tabs to market-detail-page.tsx
-- [ ] Create knowledge-contribution-page.tsx (staff submit)
-- [ ] Create knowledge-review-page.tsx (admin review queue)
-- [ ] Create knowledge-review API routes + service
-- [ ] Add sidebar nav items for knowledge contribute/review
-- [ ] Register new routes in React Router
-- [ ] Mount new API routes in routes/index.ts
-- [ ] Integrate approved knowledge + experiences into AI context
-- [ ] Test full workflow: submit -> review -> approve -> AI uses it
-- [ ] pnpm typecheck passes
+- [x] Create market-knowledge-updates-schema.ts
+- [x] Create market-experiences-schema.ts
+- [x] Export schemas in index.ts + add relations
+- [x] Add shared types + Zod schemas in packages/shared
+- [x] Run pnpm db:push
+- [x] Create knowledge-updates API routes + service
+- [x] Create experiences API routes + service
+- [x] Create knowledge-updates-tab.tsx + form dialog
+- [x] Create experiences-tab.tsx + form dialog
+- [x] Add 2 new tabs to market-detail-page.tsx
+- [x] Create knowledge-contribution-page.tsx (staff submit)
+- [x] Create knowledge-review-page.tsx (admin review queue)
+- [x] Create knowledge-review API routes + service
+- [x] Add sidebar nav items for knowledge contribute/review
+- [x] Register new routes in React Router
+- [x] Mount new API routes in routes/index.ts
+- [x] Integrate approved knowledge + experiences into AI context
+- [x] Test full workflow: submit -> review -> approve -> AI uses it
+- [x] pnpm typecheck passes
 
 ## Success Criteria
 - Market detail page has 13 tabs (11 existing + Knowledge + Experiences)

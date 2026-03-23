@@ -3,7 +3,7 @@
 ## Overview
 - **Priority**: HIGH
 - **Effort**: 5-7 days
-- **Status**: pending
+- **Status**: completed
 - **Depends on**: Phase 1 (combo types disabled)
 - **FBs**: FB-04 (room pricing redesign), FB-04 (role-based visibility), FB-10.2 (profit margins)
 
@@ -261,24 +261,24 @@ Update `room-pricing-table.tsx`:
 6. Test AI chat: ask pricing question, verify period-aware response
 
 ## Todo List
-- [ ] Add `surchargeRules` jsonb to room_pricing schema
-- [ ] Update unique index to remove comboType dependency
-- [ ] Run `pnpm db:push` for schema changes
-- [ ] Create surcharge-rules-editor.tsx component
-- [ ] Create room-pricing-period-editor.tsx component
-- [ ] Rewrite room-pricing-form-dialog.tsx with period-based layout
-- [ ] Update save logic: periods -> multiple room_pricing rows
-- [ ] Update load logic: group records into periods
-- [ ] Update room-pricing-table.tsx display (period grouping)
-- [ ] Implement role-based pricing visibility (frontend)
-- [ ] Implement role-based pricing visibility (API response filter)
-- [ ] Create pricing-margin-summary.tsx component
-- [ ] Add margin column to pricing-price-matrix.tsx
-- [ ] Add market-level margin summary to pricing-room-overview-tab.tsx
-- [ ] Update pricing-search-skill.ts for period awareness
-- [ ] Test all scenarios: create, edit, delete periods
-- [ ] Test role-based access: admin vs user
-- [ ] `pnpm typecheck` passes
+- [x] Add `surchargeRules` jsonb to room_pricing schema
+- [x] Update unique index to remove comboType dependency
+- [x] Run `pnpm db:push` for schema changes
+- [x] Create surcharge-rules-editor.tsx component
+- [x] Create room-pricing-period-editor.tsx component
+- [x] Rewrite room-pricing-form-dialog.tsx with period-based layout
+- [x] Update save logic: periods -> multiple room_pricing rows
+- [x] Update load logic: group records into periods
+- [x] Update room-pricing-table.tsx display (period grouping)
+- [x] Implement role-based pricing visibility (frontend)
+- [x] Implement role-based pricing visibility (API response filter)
+- [x] Create pricing-margin-summary.tsx component
+- [x] Add margin column to pricing-price-matrix.tsx
+- [x] Add market-level margin summary to pricing-room-overview-tab.tsx
+- [x] Update pricing-search-skill.ts for period awareness
+- [x] Test all scenarios: create, edit, delete periods
+- [x] Test role-based access: admin vs user
+- [x] `pnpm typecheck` passes
 
 ## Success Criteria
 - Room pricing form shows period-based layout matching customer mockup
