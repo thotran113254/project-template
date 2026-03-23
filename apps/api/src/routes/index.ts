@@ -10,6 +10,9 @@ import { pricingRoutes } from "../modules/pricing/pricing-routes.js";
 import { dashboardRoutes } from "../modules/dashboard/dashboard-routes.js";
 import { itineraryRoutes } from "../modules/itinerary/itinerary-routes.js";
 import { marketDataRoutes } from "../modules/market-data/market-data-routes.js";
+import { knowledgeUpdatesRoutes } from "../modules/market-data/knowledge-updates-routes.js";
+import { experiencesRoutes } from "../modules/market-data/experiences-routes.js";
+import { knowledgeReviewRoutes } from "../modules/knowledge-review/knowledge-review-routes.js";
 import { uploadRoutes } from "../modules/upload/upload-routes.js";
 import { comboCalculatorRoutes } from "../modules/pricing/combo-calculator-routes.js";
 import {
@@ -64,6 +67,15 @@ routes.route("/itinerary", itineraryRoutes);
 
 // Market data routes: /markets/*
 routes.route("/markets", marketDataRoutes);
+
+// Knowledge updates: /markets/:marketId/knowledge-updates
+routes.route("/markets/:marketId/knowledge-updates", knowledgeUpdatesRoutes);
+
+// Experiences: /markets/:marketId/experiences
+routes.route("/markets/:marketId/experiences", experiencesRoutes);
+
+// Knowledge review workflow: /knowledge-reviews
+routes.route("/knowledge-reviews", knowledgeReviewRoutes);
 
 // Property detail: /properties/:id
 routes.route("/properties", propertyDetailRoutes);

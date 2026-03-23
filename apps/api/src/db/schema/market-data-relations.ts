@@ -17,6 +17,8 @@ import { itineraryTemplates } from "./itinerary-templates-schema";
 import { itineraryTemplateItems } from "./itinerary-template-items-schema";
 import { transportProviders } from "./transport-providers-schema";
 import { transportPricing } from "./transport-pricing-schema";
+import { marketKnowledgeUpdates } from "./market-knowledge-updates-schema";
+import { marketExperiences } from "./market-experiences-schema";
 
 export const marketsRelations = relations(markets, ({ many }) => ({
   competitors: many(marketCompetitors),
@@ -31,6 +33,8 @@ export const marketsRelations = relations(markets, ({ many }) => ({
   itineraryTemplates: many(itineraryTemplates),
   pricingConfigs: many(pricingConfigs),
   transportProviders: many(transportProviders),
+  knowledgeUpdates: many(marketKnowledgeUpdates),
+  experiences: many(marketExperiences),
 }));
 
 export const marketCompetitorsRelations = relations(marketCompetitors, ({ one }) => ({
@@ -108,4 +112,12 @@ export const transportProvidersRelations = relations(transportProviders, ({ one,
 
 export const transportPricingRelations = relations(transportPricing, ({ one }) => ({
   provider: one(transportProviders, { fields: [transportPricing.providerId], references: [transportProviders.id] }),
+}));
+
+export const marketKnowledgeUpdatesRelations = relations(marketKnowledgeUpdates, ({ one }) => ({
+  market: one(markets, { fields: [marketKnowledgeUpdates.marketId], references: [markets.id] }),
+}));
+
+export const marketExperiencesRelations = relations(marketExperiences, ({ one }) => ({
+  market: one(markets, { fields: [marketExperiences.marketId], references: [markets.id] }),
 }));

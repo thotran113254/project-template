@@ -11,6 +11,8 @@ import {
   Settings,
   Calculator,
   Banknote,
+  BookPlus,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -28,9 +30,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/chat", label: "Trợ lý AI", icon: MessageSquare },
   { to: "/hotels", label: "Khách sạn", icon: Hotel },
   { to: "/combo-calculator", label: "Tính giá combo", icon: Calculator },
+  { to: "/knowledge-contribute", label: "Đóng góp kiến thức", icon: BookPlus, section: "Công cụ" },
   { to: "/profile", label: "Hồ sơ", icon: UserCircle, section: "Cài đặt" },
   // Admin section
   { to: "/markets", label: "Thị trường", icon: Globe, adminOnly: true, section: "Quản trị" },
+  { to: "/knowledge-reviews", label: "Duyệt kiến thức", icon: ClipboardCheck, adminOnly: true },
   { to: "/pricing", label: "Quản lý giá", icon: Banknote, adminOnly: true },
   { to: "/knowledge-base", label: "Cơ sở tri thức", icon: BookOpen, adminOnly: true },
   { to: "/settings/ai", label: "Cài đặt AI", icon: Settings, adminOnly: true },

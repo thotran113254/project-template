@@ -15,6 +15,8 @@ import { DiningSpotsTab } from "@/components/market-data/dining-spots-tab";
 import { TransportationTab } from "@/components/market-data/transportation-tab";
 import { TransportProvidersTab } from "@/components/market-data/transport-providers-tab";
 import { InventoryStrategiesTab } from "@/components/market-data/inventory-strategies-tab";
+import { KnowledgeUpdatesTab } from "@/components/market-data/knowledge-updates-tab";
+import { ExperiencesTab } from "@/components/market-data/experiences-tab";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,8 @@ const TABS = [
   { id: "transportation", label: "Phương tiện" },
   { id: "transport-providers", label: "Nhà xe/tàu" },
   { id: "inventory", label: "Ôm quỹ phòng" },
+  { id: "knowledge", label: "Kiến thức TT" },
+  { id: "experiences", label: "Trải nghiệm" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -114,6 +118,8 @@ export default function MarketDetailPage() {
         {activeTab === "transportation" && <TransportationTab marketId={market.id} isAdmin={isAdmin} />}
         {activeTab === "transport-providers" && <TransportProvidersTab marketId={market.id} isAdmin={isAdmin} />}
         {activeTab === "inventory" && <InventoryStrategiesTab marketId={market.id} isAdmin={isAdmin} />}
+        {activeTab === "knowledge" && <KnowledgeUpdatesTab marketId={market.id} isAdmin={isAdmin} />}
+        {activeTab === "experiences" && <ExperiencesTab marketId={market.id} isAdmin={isAdmin} />}
       </div>
     </div>
   );

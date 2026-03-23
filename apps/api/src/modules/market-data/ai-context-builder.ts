@@ -14,6 +14,8 @@ import {
   pricingOptions,
   knowledgeBase,
   aiDataSettings,
+  marketKnowledgeUpdates,
+  marketExperiences,
 } from "../../db/schema/index.js";
 import {
   fetchPropertiesWithRooms,
@@ -171,6 +173,44 @@ async function buildMarketSection(
 
   if (settings["pricing"]) {
     text += formatPricingRules(allPricingConfigs, market.id);
+  }
+
+  // Knowledge updates (approved, aiVisible)
+  const knowledge = await db
+    .select()
+    .from(marketKnowledgeUpdates)
+    .where(
+      and(
+        eq(marketKnowledgeUpdates.marketId, market.id),
+        eq(marketKnowledgeUpdates.status, "approved"),
+        eq(marketKnowledgeUpdates.aiVisible, true),
+      ),
+    );
+  if (knowledge.length > 0) {
+    text += "\n[KIẾN THỨC THỊ TRƯỜNG]\n";
+    for (const k of knowledge) {
+      text += `- ${k.aspect}: ${k.knowledge}\n`;
+    }
+  }
+
+  // Experiences (aiVisible)
+  const experiences = await db
+    .select()
+    .from(marketExperiences)
+    .where(
+      and(
+        eq(marketExperiences.marketId, market.id),
+        eq(marketExperiences.aiVisible, true),
+      ),
+    );
+  if (experiences.length > 0) {
+    text += "\n[TRẢI NGHIỆM]\n";
+    for (const e of experiences) {
+      text += `- ${e.activityName}`;
+      if (e.cost) text += ` (${e.cost})`;
+      if (e.description) text += `: ${e.description}`;
+      text += "\n";
+    }
   }
 
   return text;

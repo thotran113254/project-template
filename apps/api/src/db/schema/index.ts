@@ -33,4 +33,6 @@ export * from "./ai-data-settings-schema";
 export * from "./ai-chat-configs-schema";
 export * from "./transport-providers-schema";
 export * from "./transport-pricing-schema";
+export * from "./market-knowledge-updates-schema";
+export * from "./market-experiences-schema";
 export * from "./market-data-relations";

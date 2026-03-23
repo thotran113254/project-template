@@ -18,6 +18,8 @@ import {
   pricingConfigs,
   transportProviders,
   transportPricing,
+  marketKnowledgeUpdates,
+  marketExperiences,
 } from "../../db/schema/index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +40,8 @@ const TABLE_MAP: Record<string, { table: any; idCol: any }> = {
   pricing_config: { table: pricingConfigs, idCol: pricingConfigs.id },
   transport_provider: { table: transportProviders, idCol: transportProviders.id },
   transport_pricing: { table: transportPricing, idCol: transportPricing.id },
+  knowledge_update: { table: marketKnowledgeUpdates, idCol: marketKnowledgeUpdates.id },
+  experience: { table: marketExperiences, idCol: marketExperiences.id },
 };
 
 export async function toggleAiVisible(entityType: string, entityId: string, aiVisible: boolean) {
