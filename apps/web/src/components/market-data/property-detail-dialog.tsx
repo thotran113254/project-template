@@ -52,6 +52,10 @@ export function PropertyDetailDialog({ property, open, onOpenChange, isAdmin = f
         {/* Basic info grid */}
         <div className="grid grid-cols-3 gap-x-6 gap-y-3 text-sm border-b border-[var(--border)] pb-4">
           <div>
+            <p className="text-[var(--muted-foreground)] text-xs">Mã KS</p>
+            <p className="font-medium">{(property as unknown as Record<string, string>).propertyCode ?? "—"}</p>
+          </div>
+          <div>
             <p className="text-[var(--muted-foreground)] text-xs">Loại</p>
             <p className="font-medium">{property.type}</p>
           </div>

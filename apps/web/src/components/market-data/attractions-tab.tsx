@@ -9,6 +9,7 @@ import { Table, THead, TBody, TR, TH, TD, TableHeaderRow } from "@/components/ui
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AiVisibilityToggle } from "@/components/market-data/ai-visibility-toggle";
+import { ImageManager } from "@/components/market-data/image-manager";
 import { Spinner } from "@/components/ui/spinner";
 import { apiClient } from "@/lib/api-client";
 import type { MarketAttraction } from "@app/shared";
@@ -28,11 +29,12 @@ type FormState = {
   bestTime: string;
   costInfo: string;
   suitableFor: string;
+  images: string[];
 };
 
 const EMPTY_FORM: FormState = {
   name: "", type: "", position: "", natureDescription: "",
-  experienceValue: "", popularity: "", bestTime: "", costInfo: "", suitableFor: "",
+  experienceValue: "", popularity: "", bestTime: "", costInfo: "", suitableFor: "", images: [],
 };
 
 const POP_VARIANT: Record<string, "success" | "warning" | "secondary"> = {
@@ -57,7 +59,8 @@ export function AttractionsTab({ marketId, isAdmin }: AttractionsTabProps) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v || null]));
+      const { images, ...rest } = form;
+      const payload = { ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v || null])), images };
       if (editItem) {
         await apiClient.patch(`/markets/${marketId}/attractions/${editItem.id}`, payload);
       } else {
@@ -88,6 +91,7 @@ export function AttractionsTab({ marketId, isAdmin }: AttractionsTabProps) {
       natureDescription: item.natureDescription ?? "", experienceValue: item.experienceValue ?? "",
       popularity: item.popularity ?? "", bestTime: item.bestTime ?? "",
       costInfo: item.costInfo ?? "", suitableFor: item.suitableFor ?? "",
+      images: (item.images as string[]) ?? [],
     });
     setDialogOpen(true);
   };
@@ -185,6 +189,10 @@ export function AttractionsTab({ marketId, isAdmin }: AttractionsTabProps) {
             <div className="col-span-2">{tf("natureDescription", "Mô tả đặc điểm", true)}</div>
             <div className="col-span-2">{tf("experienceValue", "Giá trị trải nghiệm", true)}</div>
             <div className="col-span-2">{tf("suitableFor", "Phù hợp cho", true)}</div>
+            <div className="col-span-2">
+              <label className="text-sm font-medium">Hình ảnh</label>
+              <ImageManager images={form.images} onChange={(imgs) => setForm((s) => ({ ...s, images: imgs }))} maxImages={8} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Hủy</Button>

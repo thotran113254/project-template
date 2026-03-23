@@ -7,6 +7,7 @@ import {
   BookOpen,
   MessageSquare,
   BedDouble,
+  Globe,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -47,6 +48,7 @@ interface DashboardStats {
   };
   knowledgeBase: { total: number; published: number; draft: number };
   chatSessions: { total: number };
+  markets?: { total: number };
 }
 
 function formatCurrency(amount: number): string {
@@ -109,6 +111,12 @@ export function DashboardStatCards({ stats }: { stats: DashboardStats }) {
       icon: BedDouble,
       colorClass: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
     },
+    ...(stats.markets ? [{
+      label: "Thị trường",
+      value: stats.markets.total,
+      icon: Globe,
+      colorClass: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
+    }] : []),
   ];
 
   return (

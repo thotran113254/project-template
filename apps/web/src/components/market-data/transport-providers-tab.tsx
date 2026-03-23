@@ -71,6 +71,8 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
         pickupPoints: pickupPoints.length > 0 ? pickupPoints : [],
         contactInfo: Object.keys(contactInfo).length > 0 ? contactInfo : {},
         notes: form.notes || null,
+        images: form.images,
+        pricingNotes: form.pricingNotes || null,
       };
       if (editItem) {
         await apiClient.patch(`/markets/${marketId}/transport-providers/${editItem.id}`, payload);
@@ -113,6 +115,8 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
       contactPhone: contact.phone ?? "",
       contactZalo: contact.zalo ?? "",
       notes: item.notes ?? "",
+      images: ((item as unknown as Record<string, unknown>).images as string[]) ?? [],
+      pricingNotes: ((item as unknown as Record<string, unknown>).pricingNotes as string) ?? "",
     });
     setDialogOpen(true);
   };

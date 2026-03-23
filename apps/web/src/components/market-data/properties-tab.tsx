@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AiVisibilityToggle } from "@/components/market-data/ai-visibility-toggle";
 import { PropertyDetailDialog } from "@/components/market-data/property-detail-dialog";
+import { PropertyCardGrid } from "@/components/market-data/property-card-grid";
 import { ImageManager, ImageThumbnail } from "@/components/market-data/image-manager";
+import { AmenityTagPicker } from "@/components/market-data/amenity-tag-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { apiClient } from "@/lib/api-client";
 import type { MarketProperty } from "@app/shared";
@@ -22,11 +24,13 @@ interface PropertiesTabProps {
 
 type FormState = {
   name: string;
+  propertyCode: string;
   type: string;
   starRating: string;
   address: string;
   locationDetail: string;
   description: string;
+  amenities: string[];
   status: string;
   invoiceStatus: string;
   notes: string;
@@ -34,8 +38,8 @@ type FormState = {
 };
 
 const EMPTY_FORM: FormState = {
-  name: "", type: "homestay", starRating: "", address: "",
-  locationDetail: "", description: "", status: "active", invoiceStatus: "none", notes: "", images: [],
+  name: "", propertyCode: "", type: "homestay", starRating: "", address: "",
+  locationDetail: "", description: "", amenities: [], status: "active", invoiceStatus: "none", notes: "", images: [],
 };
 
 const STATUS_VARIANT: Record<string, "success" | "danger" | "secondary"> = {
@@ -72,6 +76,7 @@ export function PropertiesTab({ marketId, isAdmin }: PropertiesTabProps) {
   const [editItem, setEditItem] = useState<MarketProperty | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const f = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((p) => ({ ...p, [key]: e.target.value }));
 
@@ -87,8 +92,10 @@ export function PropertiesTab({ marketId, isAdmin }: PropertiesTabProps) {
     mutationFn: async () => {
       const payload = {
         name: form.name, slug: slugify(form.name), type: form.type,
+        propertyCode: form.propertyCode || null,
         starRating: form.starRating || null, address: form.address || null,
         locationDetail: form.locationDetail || null, description: form.description || null,
+        amenities: form.amenities,
         status: form.status, invoiceStatus: form.invoiceStatus, notes: form.notes || null,
         images: form.images,
       };
@@ -110,10 +117,11 @@ export function PropertiesTab({ marketId, isAdmin }: PropertiesTabProps) {
   const openEdit = (item: MarketProperty) => {
     setEditItem(item);
     setForm({
-      name: item.name, type: item.type, starRating: item.starRating ?? "",
+      name: item.name, propertyCode: (item as unknown as Record<string, unknown>).propertyCode as string ?? "",
+      type: item.type, starRating: item.starRating ?? "",
       address: item.address ?? "", locationDetail: item.locationDetail ?? "",
-      description: item.description ?? "", status: item.status,
-      invoiceStatus: item.invoiceStatus, notes: item.notes ?? "",
+      description: item.description ?? "", amenities: (item.amenities as string[]) ?? [],
+      status: item.status, invoiceStatus: item.invoiceStatus, notes: item.notes ?? "",
       images: (item.images as string[]) ?? [],
     });
     setFormOpen(true);
@@ -124,13 +132,25 @@ export function PropertiesTab({ marketId, isAdmin }: PropertiesTabProps) {
 
   return (
     <div className="space-y-4">
-      {isAdmin && (
-        <div className="flex justify-end">
-          <Button className="bg-teal-600 hover:bg-teal-700" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> Thêm mới</Button>
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 rounded-md border border-[var(--border)] p-0.5">
+          <button type="button" onClick={() => setViewMode("table")}
+            className={`rounded px-2 py-1 text-xs ${viewMode === "table" ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" : "text-[var(--muted-foreground)]"}`}>
+            <List className="h-3.5 w-3.5" />
+          </button>
+          <button type="button" onClick={() => setViewMode("cards")}
+            className={`rounded px-2 py-1 text-xs ${viewMode === "cards" ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" : "text-[var(--muted-foreground)]"}`}>
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </button>
         </div>
-      )}
+        {isAdmin && (
+          <Button className="bg-teal-600 hover:bg-teal-700" onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> Thêm mới</Button>
+        )}
+      </div>
 
-      {isLoading ? <div className="flex justify-center py-10"><Spinner /></div> : (
+      {isLoading ? <div className="flex justify-center py-10"><Spinner /></div> : viewMode === "cards" ? (
+        <PropertyCardGrid properties={items} marketId={marketId} isAdmin={isAdmin} onView={(p) => setDetailProp(p)} onEdit={openEdit} />
+      ) : (
         <Table>
           <THead><TableHeaderRow>
             <TH>Tên cơ sở</TH><TH>Loại</TH><TH>Sao</TH><TH>Trạng thái</TH><TH>AI</TH><TH className="w-32">Thao tác</TH>
@@ -175,6 +195,7 @@ export function PropertiesTab({ marketId, isAdmin }: PropertiesTabProps) {
           <DialogHeader><DialogTitle>{editItem ? "Chỉnh sửa cơ sở" : "Thêm cơ sở mới"}</DialogTitle></DialogHeader>
           <div className="grid gap-3 grid-cols-2">
             <div className="col-span-2 flex flex-col gap-1"><label className="text-sm font-medium">Tên *</label><Input value={form.name} onChange={f("name")} /></div>
+            <div className="flex flex-col gap-1"><label className="text-sm font-medium">Mã khách sạn</label><Input value={form.propertyCode} onChange={f("propertyCode")} placeholder="VD: HBDNG-001" /></div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">Loại *</label>
               <select className={sel} value={form.type} onChange={f("type")}>{TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>
@@ -191,6 +212,10 @@ export function PropertiesTab({ marketId, isAdmin }: PropertiesTabProps) {
             <div className="col-span-2 flex flex-col gap-1"><label className="text-sm font-medium">Địa chỉ</label><Input value={form.address} onChange={f("address")} /></div>
             <div className="col-span-2 flex flex-col gap-1"><label className="text-sm font-medium">Vị trí chi tiết</label><Input value={form.locationDetail} onChange={f("locationDetail")} placeholder="VD: Cách biển 500m, gần trung tâm" /></div>
             <div className="col-span-2 flex flex-col gap-1"><label className="text-sm font-medium">Mô tả</label><Textarea rows={3} value={form.description} onChange={f("description")} /></div>
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Tiện ích</label>
+              <AmenityTagPicker selected={form.amenities} onChange={(amenities) => setForm((p) => ({ ...p, amenities }))} />
+            </div>
             <div className="col-span-2 flex flex-col gap-1.5">
               <label className="text-sm font-medium">Hình ảnh</label>
               <ImageManager images={form.images} onChange={(imgs) => setForm((p) => ({ ...p, images: imgs }))} />

@@ -7,6 +7,7 @@ import { hotelRooms } from "../../db/schema/hotel-rooms-schema.js";
 import { bookings } from "../../db/schema/bookings-schema.js";
 import { knowledgeBase } from "../../db/schema/knowledge-base-schema.js";
 import { chatSessions } from "../../db/schema/chat-sessions-schema.js";
+import { markets } from "../../db/schema/markets-schema.js";
 
 export interface DashboardStats {
   users: { total: number; admins: number; regularUsers: number };
@@ -23,6 +24,7 @@ export interface DashboardStats {
   };
   knowledgeBase: { total: number; published: number; draft: number };
   chatSessions: { total: number };
+  markets: { total: number };
   recentBookings: Array<{
     id: string;
     hotelName: string;
@@ -54,6 +56,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     revenueStats,
     kbStats,
     chatCount,
+    marketCount,
     recentBookingRows,
     topHotelRows,
   ] = await Promise.all([
@@ -115,6 +118,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
     // Chat session count
     db.select({ total: count() }).from(chatSessions),
+
+    // Markets count
+    db.select({ total: count() }).from(markets),
 
     // Recent bookings with hotel name
     db
@@ -203,6 +209,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     },
     chatSessions: {
       total: chatCount[0]!.total,
+    },
+    markets: {
+      total: marketCount[0]!.total,
     },
     recentBookings: recentBookingRows.map((r) => ({
       id: r.id,

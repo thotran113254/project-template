@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ImageManager } from "@/components/market-data/image-manager";
 
 export type TransportProviderFormState = {
   providerName: string;
@@ -11,6 +12,8 @@ export type TransportProviderFormState = {
   contactPhone: string;
   contactZalo: string;
   notes: string;
+  images: string[];
+  pricingNotes: string;
 };
 
 export const EMPTY_PROVIDER_FORM: TransportProviderFormState = {
@@ -22,6 +25,8 @@ export const EMPTY_PROVIDER_FORM: TransportProviderFormState = {
   contactPhone: "",
   contactZalo: "",
   notes: "",
+  images: [],
+  pricingNotes: "",
 };
 
 const CATEGORIES = [
@@ -94,12 +99,25 @@ export function TransportProviderFormDialog({
             <Input value={form.contactZalo} onChange={sf("contactZalo")} placeholder="0901234567" />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Ghi chú giá (chiết khấu, niêm yết, phụ thu TE)</label>
+            <textarea
+              className="flex min-h-[60px] w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+              value={form.pricingNotes}
+              onChange={(e) => setForm((s) => ({ ...s, pricingNotes: e.target.value }))}
+              placeholder="VD: Chiết khấu 10% cho đoàn >10 người..."
+            />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
             <label className="text-sm font-medium">Ghi chú</label>
             <textarea
               className="flex min-h-[40px] w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               value={form.notes}
               onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
             />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Hình ảnh</label>
+            <ImageManager images={form.images} onChange={(imgs) => setForm((s) => ({ ...s, images: imgs }))} maxImages={6} />
           </div>
         </div>
         <DialogFooter>

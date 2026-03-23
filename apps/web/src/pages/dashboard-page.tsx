@@ -17,6 +17,7 @@ interface DashboardStats {
   };
   knowledgeBase: { total: number; published: number; draft: number };
   chatSessions: { total: number };
+  markets: { total: number };
   recentBookings: Array<{
     id: string; hotelName: string; status: string; totalPrice: number;
     checkIn: string; checkOut: string; guests: number; createdAt: string;
