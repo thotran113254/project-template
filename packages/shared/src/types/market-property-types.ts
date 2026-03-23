@@ -39,6 +39,7 @@ export interface MarketProperty {
   marketId: string;
   name: string;
   slug: string;
+  propertyCode: string | null;
   type: string;
   starRating: string | null;
   address: string | null;
@@ -105,6 +106,8 @@ export interface TransportProvider {
   routeName: string;
   contactInfo: Record<string, unknown>;
   pickupPoints: Array<{ name: string; time: string }>;
+  images: string[];
+  pricingNotes: string | null;
   notes: string | null;
   sortOrder: number;
   aiVisible: boolean;

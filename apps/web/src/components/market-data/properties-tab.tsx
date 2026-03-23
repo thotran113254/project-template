@@ -117,7 +117,7 @@ export function PropertiesTab({ marketId, isAdmin }: PropertiesTabProps) {
   const openEdit = (item: MarketProperty) => {
     setEditItem(item);
     setForm({
-      name: item.name, propertyCode: (item as unknown as Record<string, unknown>).propertyCode as string ?? "",
+      name: item.name, propertyCode: item.propertyCode ?? "",
       type: item.type, starRating: item.starRating ?? "",
       address: item.address ?? "", locationDetail: item.locationDetail ?? "",
       description: item.description ?? "", amenities: (item.amenities as string[]) ?? [],

@@ -115,8 +115,8 @@ export function TransportProvidersTab({ marketId, isAdmin }: TransportProvidersT
       contactPhone: contact.phone ?? "",
       contactZalo: contact.zalo ?? "",
       notes: item.notes ?? "",
-      images: ((item as unknown as Record<string, unknown>).images as string[]) ?? [],
-      pricingNotes: ((item as unknown as Record<string, unknown>).pricingNotes as string) ?? "",
+      images: item.images ?? [],
+      pricingNotes: item.pricingNotes ?? "",
     });
     setDialogOpen(true);
   };
